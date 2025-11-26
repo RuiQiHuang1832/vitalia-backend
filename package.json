@@ -1,0 +1,29 @@
+{
+  "name": "vitalia-backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/RuiQiHuang1832/vitalia-backend.git"
+  },
+  "keywords": [],
+  "author": "Ben Huang",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/RuiQiHuang1832/vitalia-backend/issues"
+  },
+  "homepage": "https://github.com/RuiQiHuang1832/vitalia-backend#readme",
+  "dependencies": {
+    "@prisma/client": "^7.0.1",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0"
+  },
+  "devDependencies": {
+    "prisma": "^7.0.1"
+  }
+}

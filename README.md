@@ -19,7 +19,24 @@ Focused on realistic healthcare logic such as provider/patient separation, appoi
 - **PostgreSQL Integration** – relational schema with Prisma ORM  
 - **Modular Architecture** – controllers, services, middleware separation  
 - **Error Handling** – consistent responses and input validation  
-- **Developer-Friendly** – clean routes, clear naming, Postman-ready  
+- **Developer-Friendly** – clean routes, clear naming, Postman-ready
+
+## Postman Testing
+
+You can already test **all authentication routes** and basic CRUD flows in Postman:
+
+### Available for Testing  
+- `POST /auth/register` — create a new user  
+- `POST /auth/login` — receive an access + refresh token  
+- `POST /auth/refresh` — obtain a new access token  
+
+These endpoints are fully functional and require no special role.
+
+### Locked Behind Admin Privileges (for now)  
+Provider and patient routes exist (`/providers`, `/patients`, `/appointments`) but are **intentionally restricted** behind admin-only access while role-level features are being built out.
+
+This ensures clean separation between patient, provider, and admin behavior as the system evolves.
+
 
 ## Tech Stack
 

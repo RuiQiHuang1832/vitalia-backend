@@ -46,7 +46,7 @@ This ensures clean separation between patient, provider, and admin behavior as t
 - **Database:** PostgreSQL  
 - **Auth:** JWT (access + refresh tokens)  
 - **Middleware:** Custom auth, role checks, validation  
-- **Dev Tools:** Postman, Prisma Studio  
+- **Dev Tools:** Postman  
 
 ## Status
 

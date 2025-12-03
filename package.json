@@ -19,11 +19,13 @@
   },
   "homepage": "https://github.com/RuiQiHuang1832/vitalia-backend#readme",
   "dependencies": {
-    "@prisma/client": "^7.0.1",
+    "@prisma/client": "^6.19.0",
+    "bcrypt": "^6.0.0",
     "dotenv": "^17.2.3",
-    "express": "^5.1.0"
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2"
   },
   "devDependencies": {
-    "prisma": "^7.0.1"
+    "prisma": "^6.19.0"
   }
 }

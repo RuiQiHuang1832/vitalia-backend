@@ -5,17 +5,57 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider     = "prisma-client-js"
+  moduleFormat = "esm"
 }
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  PATIENT
+  PROVIDER
+  ADMIN
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  password  String
+  id           Int      @id @default(autoincrement())
+  email        String   @unique
+  password     String
+  role         Role     @default(PATIENT)
+  createdAt    DateTime @default(now())
+  refreshToken String?
+
+  patient  Patient?
+  provider Provider?
+}
+
+model Patient {
+  id     Int  @id @default(autoincrement())
+  userId Int? @unique
+  // Relations, not stored in DB directly
+
+  user      User?    @relation(fields: [userId], references: [id])
+  firstName String
+  lastName  String
+  dob       DateTime
+  phone     String
+  email     String
+  createdAt DateTime @default(now())
+}
+
+model Provider {
+  id     Int @id @default(autoincrement())
+  userId Int? @unique
+  // Relations, not stored in DB directly
+
+  user      User?     @relation(fields: [userId], references: [id])
+  firstName String
+  lastName  String
+  specialty String
+  phone     String
+  email     String @unique
   createdAt DateTime @default(now())
 }

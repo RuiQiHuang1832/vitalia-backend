@@ -7,13 +7,15 @@ import { requireRole } from "../middleware/requireRole.js";
 import authRoutes from "./routes/authRoutes.js";
 import patientRoutes from "./routes/patientRoutes.js";
 import providerRoutes from "./routes/providerRoutes.js";
+import appointmentRoutes from "./routes/appointmentRoutes.js";
 const app = express();
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use("/auth", authRoutes);
-app.use("/patients", requireAuth, requireRole("ADMIN"), patientRoutes);
+app.use("/patients", requireAuth, requireRole("ADMIN", "PROVIDER"), patientRoutes);
 app.use("/providers", requireAuth, requireRole("ADMIN"), providerRoutes);
+app.use("/appointments", requireAuth, requireRole("ADMIN", "PROVIDER", "PATIENT"), appointmentRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

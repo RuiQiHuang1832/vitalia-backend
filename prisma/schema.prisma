@@ -20,6 +20,14 @@ enum Role {
   ADMIN
 }
 
+enum AppointmentStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+}
+
+// ---------- USERS & AUTH ----------
+
 model User {
   id           Int      @id @default(autoincrement())
   email        String   @unique
@@ -32,7 +40,26 @@ model User {
   provider Provider?
 }
 
+// ---------- PATIENTS ----------
+
 model Patient {
+  id     Int  @id @default(autoincrement())
+  userId Int? @unique
+  // Relations, not stored in DB directly
+
+  user         User?         @relation(fields: [userId], references: [id])
+  firstName    String
+  lastName     String
+  dob          DateTime
+  phone        String
+  email        String
+  createdAt    DateTime      @default(now())
+  appointments Appointment[]
+}
+
+// ---------- PROVIDERS ----------
+
+model Provider {
   id     Int  @id @default(autoincrement())
   userId Int? @unique
   // Relations, not stored in DB directly
@@ -40,22 +67,26 @@ model Patient {
   user      User?    @relation(fields: [userId], references: [id])
   firstName String
   lastName  String
-  dob       DateTime
-  phone     String
-  email     String
-  createdAt DateTime @default(now())
-}
-
-model Provider {
-  id     Int @id @default(autoincrement())
-  userId Int? @unique
-  // Relations, not stored in DB directly
-
-  user      User?     @relation(fields: [userId], references: [id])
-  firstName String
-  lastName  String
   specialty String
   phone     String
-  email     String @unique
+  email     String   @unique
   createdAt DateTime @default(now())
+
+  appointments Appointment[]
+}
+
+// ---------- APPOINTMENTS ----------
+
+model Appointment {
+  id         Int      @id @default(autoincrement())
+  providerId Int
+  patientId  Int
+  provider   Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  patient    Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  startTime  DateTime
+  endTime    DateTime
+  reason     String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  status     AppointmentStatus   @default(SCHEDULED)
 }

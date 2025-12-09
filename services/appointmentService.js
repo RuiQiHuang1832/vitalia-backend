@@ -1,4 +1,5 @@
 import prisma from "../src/lib/prisma.js";
+import {HttpError} from "../utils/HttpError.js";
 
 export const createAppointment = async (data) => {
   return await prisma.appointment.create({ data });
@@ -46,4 +47,22 @@ export const getAppointmentById = async (id) => {
   return await prisma.appointment.findUnique({
     where: { id: Number(id) }
   });
+};
+
+export const checkConflicts = async ({ providerId, start, end, ignoreId = null }) => {
+  const conflicts = await prisma.appointment.findFirst({
+    where: {
+      providerId,
+      status: "SCHEDULED", // don't count cancelled appts
+      NOT: ignoreId ? { id: ignoreId } : undefined, // ignore appointment being updated
+      AND: [
+        { startTime: { lt: end } },
+        { endTime: { gt: start } },
+      ],
+    },
+  });
+
+if (conflicts) {
+    throw new HttpError(409, "Appointment time conflicts with existing appointment");
+}
 };

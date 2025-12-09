@@ -1,6 +1,7 @@
 import * as appointmentService from "../services/appointmentService.js";
 import * as patientService from "../services/patientService.js";
 import * as providerService from "../services/providerService.js";
+import * as visitNoteService from "../services/visitNoteService.js";
 
 export const createAppointment = async (req, res, next) => {
   try {
@@ -36,6 +37,13 @@ export const createAppointment = async (req, res, next) => {
     if (!provider) {
       return res.status(404).json({ message: "Provider not found" });
     }
+
+    await appointmentService.checkConflicts({
+      providerId,
+      start,
+      end,
+    });
+
     // Create appointment
     const appointment = await appointmentService.createAppointment({
       patientId,
@@ -60,8 +68,13 @@ export const getProviderAppointments = async (req, res, next) => {
     // Handle query params
     const { page, limit, status } = req.query;
 
+    const providerId = Number(id);
+    if (isNaN(providerId)) {
+      return res.status(400).json({ message: "Invalid provider ID" });
+    }
+
     // Verify provider exists
-    const provider = await providerService.getProviderById(id);
+    const provider = await providerService.getProviderById(providerId);
     if (!provider) {
       return res.status(404).json({ message: "Provider not found" });
     }
@@ -82,7 +95,7 @@ export const getProviderAppointments = async (req, res, next) => {
 // Update appointment by ID
 export const updateAppointment = async (req, res, next) => {
   try {
-    const { patientId, providerId, startTime, endTime, reason } = req.body;
+    const { patientId, providerId, startTime, endTime, reason, status } = req.body;
 
     const appointmentId = Number(req.params.id);
 
@@ -96,7 +109,9 @@ export const updateAppointment = async (req, res, next) => {
       return res.status(404).json({ message: "Appointment not found" });
     }
 
-    const updates = {};
+    const updates = {
+      updatedAt: new Date(),
+    };
 
     // Patient update
     if (patientId !== undefined) {
@@ -131,6 +146,16 @@ export const updateAppointment = async (req, res, next) => {
     updates.endTime = end;
 
     if (reason !== undefined) updates.reason = reason;
+    if (status !== undefined) updates.status = status;
+
+    // Check for conflicts if time or provider changed
+
+    await appointmentService.checkConflicts({
+      providerId: providerId ?? existing.providerId,
+      start,
+      end,
+      ignoreId: appointmentId,
+    });
 
     const appointment = await appointmentService.updateAppointment(appointmentId, updates);
     res.status(200).json(appointment);
@@ -139,10 +164,10 @@ export const updateAppointment = async (req, res, next) => {
   }
 }
 
-
+// Delete appointment by ID
 export const deleteAppointment = async (req, res, next) => {
   try {
-    const {id} = req.params;
+    const { id } = req.params;
     // Verify appointment exists
     const appointmentId = Number(id);
 
@@ -157,6 +182,73 @@ export const deleteAppointment = async (req, res, next) => {
 
     await appointmentService.deleteAppointment(appointmentId);
     res.status(200).json({ message: "Appointment deleted" });
+  } catch (error) {
+    next(error);
+  }
+}
+
+// Create visit note for an appointment
+export const createVisitNote = async (req, res, next) => {
+  try {
+    // Only provider can create visit notes, so get it from logged in user
+    const providerId = req.user.id;
+    const { id } = req.params;
+    // Verify appointment exists
+    const appointmentId = Number(id);
+
+    if (isNaN(appointmentId)) {
+      return res.status(400).json({ message: "Invalid appointment ID" });
+    }
+    // Verify appointment exists
+    const appointment = await appointmentService.getAppointmentById(appointmentId);
+    if (!appointment) {
+      return res.status(404).json({ message: "Appointment not found" });
+    }
+
+    if (appointment.providerId !== providerId) {
+      return res.status(403).json({ message: "Forbidden: You are not the provider for this appointment" });
+    }
+
+    // Create visit note
+    const visitNote = await visitNoteService.createVisitNote({
+      providerId,
+      appointmentId,
+    });
+    res.status(201).json(visitNote);
+
+  } catch (error) {
+    next(error);
+  }
+}
+
+// Get latest visit note entry for an appointment
+export const getLatestVisitNoteEntry = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    // Verify appointment exists
+    const appointmentId = Number(id);
+
+    if (isNaN(appointmentId)) {
+      return res.status(400).json({ message: "Invalid appointment ID" });
+    }
+    // Verify appointment exists
+    const appointment = await appointmentService.getAppointmentById(appointmentId);
+    if (!appointment) {
+      return res.status(404).json({ message: "Appointment not found" });
+    }
+    // If appointment exists but no visit note, return 404
+    const visitNote = await visitNoteService.getVisitNoteByAppointmentId(appointmentId);
+    if (!visitNote) {
+      return res.status(404).json({ message: "Visit note not found" });
+    }
+    // Get latest entry
+    const entry = await visitNoteService.getLatestVisitNoteEntry(visitNote);
+    // If no entry found, return 404
+    if (!entry) {
+      return res.status(404).json({ message: "Visit note ENTRY not found" });
+    }
+    res.status(200).json(entry);
+
   } catch (error) {
     next(error);
   }

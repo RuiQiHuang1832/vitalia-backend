@@ -72,21 +72,59 @@ model Provider {
   email     String   @unique
   createdAt DateTime @default(now())
 
-  appointments Appointment[]
+  appointments      Appointment[]
+  visitNotes        VisitNote[]
+  visitNoteVersions VisitNoteEntry[] @relation("ProviderEdits")
 }
 
 // ---------- APPOINTMENTS ----------
 
 model Appointment {
-  id         Int      @id @default(autoincrement())
+  id         Int               @id @default(autoincrement())
   providerId Int
   patientId  Int
-  provider   Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
-  patient    Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  provider   Provider          @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  patient    Patient           @relation(fields: [patientId], references: [id], onDelete: Cascade)
   startTime  DateTime
   endTime    DateTime
   reason     String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  status     AppointmentStatus   @default(SCHEDULED)
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+  status     AppointmentStatus @default(SCHEDULED)
+  visitNote  VisitNote?
+}
+
+// ---------- Visit Notes ----------
+// Parent model for visit notes associated with an appointment.
+model VisitNote {
+  id            Int  @id @default(autoincrement())
+  appointmentId Int  @unique
+  providerId    Int
+  latestVersion Int? // Points to the most recent VisitNoteEntry
+
+  // Relations
+  appointment Appointment      @relation(fields: [appointmentId], references: [id])
+  provider    Provider         @relation(fields: [providerId], references: [id])
+  versions    VisitNoteEntry[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Versions of a visit note, tracking edits over time.
+model VisitNoteEntry {
+  id          Int    @id @default(autoincrement())
+  visitNoteId Int
+  version     Int // 1, 2, 3...
+  content     String
+  editedById  Int // provider who made this version
+
+  // Relations
+  visitNote VisitNote @relation(fields: [visitNoteId], references: [id])
+  editedBy  Provider  @relation("ProviderEdits", fields: [editedById], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@unique([visitNoteId, version]) // Prevent duplicate version numbers per VisitNote
+  @@index([visitNoteId]) // Improve performance when querying versions
 }

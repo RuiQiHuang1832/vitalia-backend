@@ -9,6 +9,7 @@ import authRoutes from "./routes/authRoutes.js";
 import patientRoutes from "./routes/patientRoutes.js";
 import providerRoutes from "./routes/providerRoutes.js";
 import visitNoteRoutes from "./routes/visitNoteRoutes.js";
+import problemRoutes from "./routes/problemRoutes.js";
 const app = express();
 
 app.use(express.json());
@@ -18,6 +19,7 @@ app.use("/patients", requireAuth, requireRole("ADMIN", "PROVIDER"), patientRoute
 app.use("/providers", requireAuth, requireRole("ADMIN"), providerRoutes);
 app.use("/appointments", requireAuth, appointmentRoutes);
 app.use("/notes", requireAuth, requireRole("PROVIDER"), visitNoteRoutes);
+app.use("/problems", requireAuth, requireRole("PROVIDER", "ADMIN"), problemRoutes);
 app.use(notFound);
 app.use(errorHandler);
 

@@ -26,6 +26,12 @@ enum AppointmentStatus {
   CANCELLED
 }
 
+enum ProblemStatus {
+  ACTIVE
+  RESOLVED
+}
+
+
 // ---------- USERS & AUTH ----------
 
 model User {
@@ -55,6 +61,7 @@ model Patient {
   email        String
   createdAt    DateTime      @default(now())
   appointments Appointment[]
+  problems     Problem[]
 }
 
 // ---------- PROVIDERS ----------
@@ -75,6 +82,7 @@ model Provider {
   appointments      Appointment[]
   visitNotes        VisitNote[]
   visitNoteVersions VisitNoteEntry[] @relation("ProviderEdits")
+  problems         Problem[]
 }
 
 // ---------- APPOINTMENTS ----------
@@ -127,4 +135,23 @@ model VisitNoteEntry {
 
   @@unique([visitNoteId, version]) // Prevent duplicate version numbers per VisitNote
   @@index([visitNoteId]) // Improve performance when querying versions
+}
+
+// ---------- Problem List ----------
+model Problem {
+  id           Int           @id @default(autoincrement())
+  patientId    Int
+  providerId   Int
+
+  name         String
+  icdCode      String?       // optional ICD-10 diagnostic code
+  description  String?       // provider notes
+  status       ProblemStatus @default(ACTIVE)
+
+  createdAt    DateTime      @default(now())
+  resolvedAt   DateTime?     // only used if status = RESOLVED
+
+  // Relations
+  patient      Patient       @relation(fields: [patientId], references: [id])
+  provider     Provider      @relation(fields: [providerId], references: [id])
 }

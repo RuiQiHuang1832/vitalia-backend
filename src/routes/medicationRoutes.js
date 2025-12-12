@@ -5,8 +5,8 @@ import { createMedication, getMedicationsForPatient, updateMedication } from "..
 const router = Router();
 
 router.post("/", createMedication);
-// Get Medications for a patient via query param
-router.get("/", getMedicationsForPatient);
+// Get Medications for a patient
+router.get("/:id", getMedicationsForPatient);
 router.put("/:id", updateMedication);
 
 export default router;

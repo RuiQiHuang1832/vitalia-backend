@@ -39,8 +39,8 @@ export const createMedication = async (req, res, next) => {
 
 export const getMedicationsForPatient = async (req, res, next) => {
   try {
-    const { patientId } = req.query;
-    const patientIdNum = Number(patientId);
+    const { id } = req.params;
+    const patientIdNum = Number(id);
     if (isNaN(patientIdNum)) {
       return res.status(400).json({ message: "patientId is required and must be a number" });
     }

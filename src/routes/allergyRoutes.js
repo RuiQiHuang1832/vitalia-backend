@@ -3,7 +3,7 @@ import { createAllergy, getAllergies, deleteAllergy, updateAllergy } from "../..
 const router = Router();
 
 
-router.get('/', getAllergies);
+router.get('/:id', getAllergies);
 router.post('/', createAllergy);
 router.put('/:id', updateAllergy);
 router.delete('/:id', deleteAllergy);

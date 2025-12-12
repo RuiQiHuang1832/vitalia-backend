@@ -25,7 +25,7 @@ app.use("/notes", requireAuth, requireRole("PROVIDER"), visitNoteRoutes);
 app.use("/problems", requireAuth, requireRole("PROVIDER", "ADMIN"), problemRoutes);
 app.use("/allergies", requireAuth, requireRole("PROVIDER", "ADMIN"), allergyRoutes);
 app.use("/medications", requireAuth, requireRole("PROVIDER", "ADMIN"), medicationRoutes);
-app.use("/vitals", requireAuth, requireRole("PROVIDER", "ADMIN"), vitalRoutes);
+app.use("/vitals", requireAuth, vitalRoutes);
 app.use(notFound);
 app.use(errorHandler);
 

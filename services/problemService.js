@@ -1,14 +1,14 @@
-import prisma from "../src/lib/prisma";
+import prisma from "../src/lib/prisma.js";
 
 export const createProblem = async (data) => {
   return await prisma.problem.create({ data });
 }
 
 export const getProblemsByPatientId = async (patientId) => {
- return await prisma.problem.findMany( {
-  where: { patientId},
-  orderBy: { createdAt: "desc" },
- })
+  return await prisma.problem.findMany({
+    where: { patientId },
+    orderBy: { createdAt: "desc" },
+  })
 }
 
 export const getProblemById = async (id) => {

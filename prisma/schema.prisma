@@ -31,6 +31,18 @@ enum ProblemStatus {
   RESOLVED
 }
 
+enum AllergySeverity {
+  MILD
+  MODERATE
+  SEVERE
+}
+
+enum AllergyCategory {
+  FOOD
+  MEDICATION
+  ENVIRONMENTAL
+  OTHER
+}
 
 // ---------- USERS & AUTH ----------
 
@@ -62,6 +74,7 @@ model Patient {
   createdAt    DateTime      @default(now())
   appointments Appointment[]
   problems     Problem[]
+  allergies    Allergy[]
 }
 
 // ---------- PROVIDERS ----------
@@ -82,7 +95,8 @@ model Provider {
   appointments      Appointment[]
   visitNotes        VisitNote[]
   visitNoteVersions VisitNoteEntry[] @relation("ProviderEdits")
-  problems         Problem[]
+  problems          Problem[]
+  allergies         Allergy[]
 }
 
 // ---------- APPOINTMENTS ----------
@@ -139,19 +153,38 @@ model VisitNoteEntry {
 
 // ---------- Problem List ----------
 model Problem {
-  id           Int           @id @default(autoincrement())
-  patientId    Int
-  providerId   Int
+  id         Int @id @default(autoincrement())
+  patientId  Int
+  providerId Int
 
-  name         String
-  icdCode      String?       // optional ICD-10 diagnostic code
-  description  String?       // provider notes
-  status       ProblemStatus @default(ACTIVE)
+  name        String
+  icdCode     String? // optional ICD-10 diagnostic code
+  description String? // provider notes
+  status      ProblemStatus @default(ACTIVE)
 
-  createdAt    DateTime      @default(now())
-  resolvedAt   DateTime?     // only used if status = RESOLVED
+  createdAt  DateTime  @default(now())
+  resolvedAt DateTime? // only used if status = RESOLVED
 
   // Relations
-  patient      Patient       @relation(fields: [patientId], references: [id])
-  provider     Provider      @relation(fields: [providerId], references: [id])
+  patient  Patient  @relation(fields: [patientId], references: [id])
+  provider Provider @relation(fields: [providerId], references: [id])
+}
+
+// ---------- Allergy ----------
+
+model Allergy {
+  id           Int              @id @default(autoincrement())
+  patientId    Int
+  recordedById Int
+  category     AllergyCategory
+  substance    String
+  reaction     String?
+  severity     AllergySeverity?
+  notes        String?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  // Relations
+  patient  Patient  @relation(fields: [patientId], references: [id])
+  provider Provider @relation(fields: [recordedById], references: [id])
 }

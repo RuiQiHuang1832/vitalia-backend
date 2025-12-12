@@ -1,6 +1,5 @@
 import * as patientService from "../services/patientService.js";
-import * as providerService from "../services/providerService.js";
-
+import * as problemService from "../services/problemService.js";
 
 export const createProblem = async (req, res, next) => {
   try {
@@ -21,12 +20,6 @@ export const createProblem = async (req, res, next) => {
     const patient = await patientService.getPatientById(patientIdNum);
     if (!patient) {
       return res.status(404).json({ message: "Patient not found" });
-    }
-
-    // Verify provider exists
-    const provider = await providerService.getProviderById(providerId);
-    if (!provider) {
-      return res.status(404).json({ message: "Provider not found" });
     }
     // Create problem
     const problem = await problemService.createProblem({
@@ -66,13 +59,13 @@ export const getProblemsForPatient = async (req, res, next) => {
 
 export const getProblemById = async (req, res, next) => {
   try {
-    const { problemId } = req.params;
-    const problemIdNum = Number(problemId);
-    if (isNaN(problemIdNum)) {
+    const { id } = req.params;
+    const problemId = Number(id);
+    if (isNaN(problemId)) {
       return res.status(400).json({ message: "Invalid problem ID" });
     }
     //Fetch problem
-    const problem = await problemService.getProblemById(problemIdNum);
+    const problem = await problemService.getProblemById(problemId);
     if (!problem) {
       return res.status(404).json({ message: "No problem found" });
     }
@@ -85,9 +78,9 @@ export const getProblemById = async (req, res, next) => {
 export const updateProblem = async (req, res, next) => {
   try {
     const { name, icdCode, description, status } = req.body;
-    const { problemId } = req.params;
-    const problemIdNum = Number(problemId);
-    if (isNaN(problemIdNum)) {
+    const { id } = req.params;
+    const problemId = Number(id);
+    if (isNaN(problemId)) {
       return res.status(400).json({ message: "Invalid problem ID" });
     }
     const update = {};
@@ -103,12 +96,12 @@ export const updateProblem = async (req, res, next) => {
     if (name !== undefined) update.name = name;
     if (icdCode !== undefined) update.icdCode = icdCode;
     if (description !== undefined) update.description = description;
-
-
-    const updatedProblem = await problemService.updateProblem(problemIdNum, update);
-    if (!updatedProblem) {
+    const problem = await problemService.getProblemById(problemId);
+    if (!problem) {
       return res.status(404).json({ message: "Problem not found" });
     }
+
+    const updatedProblem = await problemService.updateProblem(problemId, update);
     res.status(200).json(updatedProblem);
   } catch (error) {
     next(error);

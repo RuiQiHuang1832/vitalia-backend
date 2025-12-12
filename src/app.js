@@ -11,6 +11,7 @@ import providerRoutes from "./routes/providerRoutes.js";
 import visitNoteRoutes from "./routes/visitNoteRoutes.js";
 import problemRoutes from "./routes/problemRoutes.js";
 import allergyRoutes from "./routes/allergyRoutes.js";
+import medicationRoutes from "./routes/medicationRoutes.js";
 const app = express();
 
 app.use(express.json());
@@ -22,7 +23,7 @@ app.use("/appointments", requireAuth, appointmentRoutes);
 app.use("/notes", requireAuth, requireRole("PROVIDER"), visitNoteRoutes);
 app.use("/problems", requireAuth, requireRole("PROVIDER", "ADMIN"), problemRoutes);
 app.use("/allergies", requireAuth, requireRole("PROVIDER", "ADMIN"), allergyRoutes);
-
+app.use("/medications", requireAuth, requireRole("PROVIDER", "ADMIN"), medicationRoutes);
 app.use(notFound);
 app.use(errorHandler);
 

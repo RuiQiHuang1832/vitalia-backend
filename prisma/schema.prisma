@@ -44,6 +44,12 @@ enum AllergyCategory {
   OTHER
 }
 
+enum MedicationStatus {
+  ACTIVE
+  COMPLETED
+  DISCONTINUED
+}
+
 // ---------- USERS & AUTH ----------
 
 model User {
@@ -75,6 +81,7 @@ model Patient {
   appointments Appointment[]
   problems     Problem[]
   allergies    Allergy[]
+  medications  Medication[]
 }
 
 // ---------- PROVIDERS ----------
@@ -97,6 +104,7 @@ model Provider {
   visitNoteVersions VisitNoteEntry[] @relation("ProviderEdits")
   problems          Problem[]
   allergies         Allergy[]
+  medications       Medication[]
 }
 
 // ---------- APPOINTMENTS ----------
@@ -187,4 +195,25 @@ model Allergy {
   // Relations
   patient  Patient  @relation(fields: [patientId], references: [id])
   provider Provider @relation(fields: [recordedById], references: [id])
+}
+
+// ---------- Medication ----------
+
+model Medication {
+  id           Int              @id @default(autoincrement())
+  patientId    Int
+  prescribedBy Int
+  name         String
+  dosage       String
+  frequency    String
+  startDate    DateTime
+  endDate      DateTime?
+  status       MedicationStatus @default(ACTIVE)
+  notes        String?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  // Relations
+  patient  Patient  @relation(fields: [patientId], references: [id])
+  provider Provider @relation(fields: [prescribedBy], references: [id])
 }

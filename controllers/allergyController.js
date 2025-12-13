@@ -1,5 +1,6 @@
 import * as allergyService from "../services/allergyService.js";
 import * as patientService from "../services/patientService.js";
+import { logAudit } from "../services/auditLogService.js";
 
 export const createAllergy = async (req, res, next) => {
   try {
@@ -38,6 +39,13 @@ export const createAllergy = async (req, res, next) => {
       severity: severity ? severity.toUpperCase() : undefined,
       notes,
     });
+    await logAudit({
+      user: req.user,
+      action: 'CREATE',
+      entity: 'ALLERGY',
+      entityId: allergy.id,
+      details: { allergy }
+    });
     res.status(201).json(allergy);
 
 
@@ -64,6 +72,15 @@ export const getAllergies = async (req, res, next) => {
     if (!allergies || Object.keys(allergies).length === 0) {
       return res.status(404).json({ message: "No allergies found for this patient" });
     }
+    await logAudit({
+      user: req.user,
+      action: 'VIEW',
+      entity: 'PATIENT',
+      entityId: patientIdNum,
+      details: {
+        viewed: 'ALLERGY_LIST'
+      }
+    });
     res.status(200).json(allergies);
   } catch (error) {
     next(error);
@@ -109,6 +126,14 @@ export const updateAllergy = async (req, res, next) => {
     if (notes !== undefined) update.notes = notes;
 
     const updatedAllergy = await allergyService.updateAllergy(allergyId, update);
+
+    await logAudit({
+      user: req.user,
+      action: 'UPDATE',
+      entity: 'ALLERGY',
+      entityId: allergyId,
+      details: { previousData: allergy, updatedData: updatedAllergy }
+    });
     res.status(200).json(updatedAllergy);
 
   } catch (error) {
@@ -130,6 +155,13 @@ export const deleteAllergy = async (req, res, next) => {
       return res.status(404).json({ message: "Allergy not found" });
     }
     await allergyService.deleteAllergy(allergyId);
+    await logAudit({
+      user: req.user,
+      action: 'DELETE',
+      entity: 'ALLERGY',
+      entityId: allergyId,
+      details: { previousData: allergy }
+    });
     res.status(200).json({ message: "Allergy successfully deleted" });
   } catch (error) {
     next(error);

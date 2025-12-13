@@ -1,5 +1,6 @@
 import * as patientService from "../services/patientService.js";
 import * as problemService from "../services/problemService.js";
+import { logAudit } from "../services/auditLogService.js";
 
 export const createProblem = async (req, res, next) => {
   try {
@@ -29,6 +30,13 @@ export const createProblem = async (req, res, next) => {
       icdCode,
       description,
     });
+    await logAudit({
+      user: req.user,
+      action: 'CREATE',
+      entity: 'PROBLEM',
+      entityId: problem.id,
+      details: { problem }
+    });
     res.status(201).json(problem);
   } catch (error) {
     next(error);
@@ -50,6 +58,15 @@ export const getProblemsForPatient = async (req, res, next) => {
     }
     // Fetch problems
     const problems = await problemService.getProblemsByPatientId(patientIdNum);
+    await logAudit({
+      user: req.user,
+      action: 'VIEW',
+      entity: 'PATIENT',
+      entityId: patientIdNum,
+      details: {
+        viewed: 'PROBLEM_LIST'
+      }
+    });
     res.status(200).json(problems);
 
   } catch (error) {
@@ -69,6 +86,15 @@ export const getProblemById = async (req, res, next) => {
     if (!problem) {
       return res.status(404).json({ message: "No problem found" });
     }
+    await logAudit({
+      user: req.user,
+      action: 'VIEW',
+      entity: 'PROBLEM',
+      entityId: problemId,
+      details: {
+        viewed: 'PROBLEM_DETAIL'
+      }
+    });
     res.status(200).json(problem);
   } catch (error) {
     next(error);
@@ -83,6 +109,10 @@ export const updateProblem = async (req, res, next) => {
     if (isNaN(problemId)) {
       return res.status(400).json({ message: "Invalid problem ID" });
     }
+    const problem = await problemService.getProblemById(problemId);
+    if (!problem) {
+      return res.status(404).json({ message: "Problem not found" });
+    }
     const update = {};
     if (status !== undefined) {
       update.status = status;
@@ -92,16 +122,19 @@ export const updateProblem = async (req, res, next) => {
         update.resolvedAt = null;
       }
     }
-
     if (name !== undefined) update.name = name;
     if (icdCode !== undefined) update.icdCode = icdCode;
     if (description !== undefined) update.description = description;
-    const problem = await problemService.getProblemById(problemId);
-    if (!problem) {
-      return res.status(404).json({ message: "Problem not found" });
-    }
+
 
     const updatedProblem = await problemService.updateProblem(problemId, update);
+    await logAudit({
+      user: req.user,
+      action: 'UPDATE',
+      entity: 'PROBLEM',
+      entityId: problemId,
+      details: { previousData: problem, updatedData: updatedProblem }
+    });
     res.status(200).json(updatedProblem);
   } catch (error) {
     next(error);

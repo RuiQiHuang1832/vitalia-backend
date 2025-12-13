@@ -1,6 +1,6 @@
+import * as providerService from "../services/providerService.js";
 import { validateEmail } from "../utils/validateEmail.js";
 import { validatePhone } from "../utils/validatePhone.js";
-import * as providerService from "../services/providerService.js";
 
 export const createProvider = async (req, res, next) => {
   try {
@@ -25,7 +25,7 @@ export const createProvider = async (req, res, next) => {
       return res.status(400).json({ message: emailError });
     }
 
-    const {error: phoneError } = validatePhone(phone);
+    const { error: phoneError } = validatePhone(phone);
     if (phoneError) {
       return res.status(400).json({ message: phoneError });
     }

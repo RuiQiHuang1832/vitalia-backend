@@ -3,8 +3,9 @@ import jwt from "jsonwebtoken";
 import prisma from "../src/lib/prisma.js";
 import { generateAccessToken, generateRefreshToken } from "../utils/jwt.js";
 import { parseDob } from "../utils/validateDate.js";
-import { validatePhone } from "../utils/validatePhone.js";
 import { validateEmail } from "../utils/validateEmail.js";
+import { validatePhone } from "../utils/validatePhone.js";
+
 export const register = async (req, res, next) => {
   try {
     const { email, password, firstName, lastName, dob, phone } = req.body;

@@ -1,9 +1,10 @@
+import { logAudit } from "../services/auditLogService.js";
 import * as medicationService from "../services/medicationService.js";
 import * as patientService from "../services/patientService.js";
 
 export const createMedication = async (req, res, next) => {
   try {
-    const {patientId, name, dosage, frequency, startDate, notes} = req.body;
+    const { patientId, name, dosage, frequency, startDate, notes } = req.body;
     const prescribedById = req.user.id;
     // Basic validation
     if (!patientId || !name || !dosage || !frequency || !startDate) {
@@ -29,6 +30,13 @@ export const createMedication = async (req, res, next) => {
       startDate: new Date(startDate),
       notes,
     });
+    await logAudit({
+      user: req.user,
+      action: 'CREATE',
+      entity: 'MEDICATION',
+      entityId: medication.id,
+      details: { medication }
+    });
     res.status(201).json(medication);
   } catch (error) {
     next(error);
@@ -51,6 +59,15 @@ export const getMedicationsForPatient = async (req, res, next) => {
     }
     // Fetch medications
     const medications = await medicationService.getMedicationsByPatientId(patientIdNum);
+    await logAudit({
+      user: req.user,
+      action: 'VIEW',
+      entity: 'PATIENT',
+      entityId: patientIdNum,
+      details: {
+        viewed: 'MEDICATION_LIST'
+      }
+    });
     res.status(200).json(medications);
   } catch (error) {
     next(error);
@@ -92,6 +109,15 @@ export const updateMedication = async (req, res, next) => {
     }
     // Perform update
     const updatedMedication = await medicationService.updateMedication(medicationId, update);
+
+    await logAudit({
+      user: req.user,
+      action: 'UPDATE',
+      entity: 'MEDICATION',
+      entityId: medicationId,
+      details: { previousData: medication, updatedData: updatedMedication }
+    });
+
     res.status(200).json(updatedMedication);
   } catch (error) {
     next(error);

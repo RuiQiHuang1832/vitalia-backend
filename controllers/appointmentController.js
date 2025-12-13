@@ -2,6 +2,7 @@ import * as appointmentService from "../services/appointmentService.js";
 import * as patientService from "../services/patientService.js";
 import * as providerService from "../services/providerService.js";
 import * as visitNoteService from "../services/visitNoteService.js";
+import { logAudit } from "../services/auditLogService.js";
 
 export const createAppointment = async (req, res, next) => {
   try {
@@ -52,6 +53,14 @@ export const createAppointment = async (req, res, next) => {
       endTime: end,
       reason,
     });
+    await logAudit({
+      user: req.user,
+      action: 'CREATE',
+      entity: 'APPOINTMENT',
+      entityId: appointment.id,
+      details: { appointment }
+    });
+
     res.status(201).json(appointment);
   } catch (error) {
     next(error);
@@ -84,7 +93,15 @@ export const getProviderAppointments = async (req, res, next) => {
 
     // get appointments
     const appointments = await appointmentService.getProviderAppointments(provider.id, pageNum, limitNum, status);
-
+    await logAudit({
+      user: req.user,
+      action: 'VIEW',
+      entity: 'PROVIDER',
+      entityId: providerId,
+      details: {
+        viewed: 'APPOINTMENT_LIST'
+      }
+    });
     return res.status(200).json(appointments);
 
   } catch (error) {
@@ -158,6 +175,13 @@ export const updateAppointment = async (req, res, next) => {
     });
 
     const appointment = await appointmentService.updateAppointment(appointmentId, updates);
+    await logAudit({
+      user: req.user,
+      action: 'UPDATE',
+      entity: 'APPOINTMENT',
+      entityId: appointmentId,
+      details: { previousData: existing, updatedData: appointment }
+    });
     res.status(200).json(appointment);
   } catch (error) {
     next(error);
@@ -181,6 +205,13 @@ export const deleteAppointment = async (req, res, next) => {
     }
 
     await appointmentService.deleteAppointment(appointmentId);
+    await logAudit({
+      user: req.user,
+      action: 'DELETE',
+      entity: 'APPOINTMENT',
+      entityId: appointmentId,
+      details: { previousData: appointment }
+    });
     res.status(200).json({ message: "Appointment deleted" });
   } catch (error) {
     next(error);
@@ -213,6 +244,13 @@ export const createVisitNote = async (req, res, next) => {
     const visitNote = await visitNoteService.createVisitNote({
       providerId,
       appointmentId,
+    });
+    await logAudit({
+      user: req.user,
+      action: 'CREATE',
+      entity: 'VISIT_NOTE',
+      entityId: visitNote.id,
+      details: { visitNote }
     });
     res.status(201).json(visitNote);
 
@@ -247,6 +285,15 @@ export const getLatestVisitNoteEntry = async (req, res, next) => {
     if (!entry) {
       return res.status(404).json({ message: "Visit note ENTRY not found" });
     }
+    await logAudit({
+      user: req.user,
+      action: 'VIEW',
+      entity: 'VISIT_NOTE',
+      entityId: visitNote.id,
+      details: {
+        viewed: 'LATEST_VISIT_NOTE_ENTRY'
+      }
+    });
     res.status(200).json(entry);
 
   } catch (error) {

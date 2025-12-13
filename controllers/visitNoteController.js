@@ -1,4 +1,5 @@
 import * as visitNoteService from "../services/visitNoteService.js";
+import { logAudit } from "../services/auditLogService.js";
 
 export const createVisitNoteEntry = async (req, res, next) => {
   try {
@@ -29,6 +30,13 @@ export const createVisitNoteEntry = async (req, res, next) => {
       content,
       editedById: providerId,
     });
+    await logAudit({
+      user: req.user,
+      action: 'CREATE',
+      entity: 'VISIT_NOTE_ENTRY',
+      entityId: newEntry.id,
+      details: { newEntry }
+    });
     res.status(201).json(newEntry);
   } catch (error) {
     next(error);
@@ -51,6 +59,15 @@ export const getAllVisitNoteEntries = async (req, res, next) => {
     }
 
     const entries = await visitNoteService.getAllVisitNoteEntries(visitNoteIdNumber);
+    await logAudit({
+      user: req.user,
+      action: 'VIEW',
+      entity: 'VISIT_NOTE',
+      entityId: visitNoteIdNumber,
+      details: {
+        viewed: 'VISIT_NOTE_ENTRY_LIST'
+      }
+    });
     res.status(200).json(entries);
   }
   catch (error) {

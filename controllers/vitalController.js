@@ -1,6 +1,8 @@
 import * as appointmentService from '../services/appointmentService.js';
 import * as vitalService from '../services/vitalService.js';
 import * as patientService from '../services/patientService.js';
+import { logAudit } from "../services/auditLogService.js";
+
 export const createVital = async (req, res, next) => {
   try {
     const { appointmentId, heartRate, bloodPressureSystolic, bloodPressureDiastolic, temperature, weight, oxygenSaturation } = req.body;
@@ -31,6 +33,13 @@ export const createVital = async (req, res, next) => {
       weight,
       oxygenSaturation
     });
+    await logAudit({
+      user: req.user,
+      action: 'CREATE',
+      entity: 'VITAL',
+      entityId: vital.id,
+      details: { vital }
+    });
     res.status(201).json(vital);
   } catch (error) {
     next(error);
@@ -51,6 +60,15 @@ export const getVitalsForAppointment = async (req, res, next) => {
     }
     // Fetch vitals for appointment
     const vitals = await vitalService.getVitalsByAppointmentId(appointmentIdNum);
+    await logAudit({
+      user: req.user,
+      action: 'VIEW',
+      entity: 'APPOINTMENT',
+      entityId: appointmentIdNum,
+      details: {
+        viewed: 'VITAL_LIST'
+      }
+    });
     res.status(200).json(vitals);
   } catch (error) {
     next(error);
@@ -74,6 +92,15 @@ export const getVitalsForPatient = async (req, res, next) => {
       return res.status(404).json({ message: 'Patient not found.' });
     }
     const vitals = await vitalService.getVitalsByPatientId(patientIdNum);
+    await logAudit({
+      user: req.user,
+      action: 'VIEW',
+      entity: 'PATIENT',
+      entityId: patientIdNum,
+      details: {
+        viewed: 'VITAL_LIST'
+      }
+    });
     res.status(200).json(vitals);
   } catch (error) {
     next(error);
@@ -107,6 +134,13 @@ export const updateVital = async (req, res, next) => {
     }
 
     const updatedVital = await vitalService.updateVital(vitalIdNum, update);
+    await logAudit({
+      user: req.user,
+      action: 'UPDATE',
+      entity: 'VITAL',
+      entityId: vitalIdNum,
+      details: { previousData: vital, updatedData: updatedVital }
+    });
     res.status(200).json(updatedVital);
   } catch (error) {
     next(error);
@@ -127,6 +161,13 @@ export const deleteVital = async (req, res, next) => {
     }
     // Delete vital record
     await vitalService.deleteVital(vitalIdNum);
+    await logAudit({
+      user: req.user,
+      action: 'DELETE',
+      entity: 'VITAL',
+      entityId: vitalIdNum,
+      details: { previousData: vital }
+    });
     res.status(200).json({message: 'Vital record deleted.'});
   } catch (error) {
     next(error);

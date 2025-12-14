@@ -38,29 +38,32 @@ Foundational EMR components that demonstrate real clinical data modeling:
 
 ### Architecture & Tooling
 
+**Architecture**
 - Modular controllers, services, and middleware
 - Centralized error handling
+- Role-based access enforcement
+
+**Tooling**
 - PostgreSQL database (Supabase)
 - Prisma ORM
 - Clean, Postman-friendly route structure
 
-## Postman Testing
+## API Documentation
 
-You can already test **all authentication routes** and basic CRUD flows in Postman:
+Full API documentation (routes, request/response examples, auth rules) is available here:
 
-### Available for Testing
+👉 [API_REFERENCE.md](./docs/API_REFERENCE.md)
 
-- `POST /auth/register` — create a new user
-- `POST /auth/login` — receive an access + refresh token
-- `POST /auth/refresh` — obtain a new access token
+## Postman / Testing
 
-These endpoints are fully functional and require no special role.
+All endpoints were manually tested using Postman, including negative cases (invalid scheduling, conflicts, permissions).
 
-### Locked Behind Admin Privileges (for now)
+Postman collections were used to verify:
 
-Provider and patient routes exist (`/providers`, `/patients`, `/appointments`) but are **intentionally restricted** behind admin-only access while role-level features are being built out.
-
-This ensures clean separation between patient, provider, and admin behavior as the system evolves.
+- Authentication flows (Login, Register, Refresh Token)
+- Role-based access control (Admin vs Provider vs Patient)
+- Complex business logic (Appointment conflicts, Provider availability)
+- EMR data integrity (Vitals, Medications, Allergies, Problems)
 
 ## Tech Stack
 
@@ -74,12 +77,8 @@ This ensures clean separation between patient, provider, and admin behavior as t
 
 ## Status
 
-Vitalia is in **active development**.
-Current goals include:
+Vitalia Backend is **feature complete**.
 
-- Expanding core EMR models (notes, vitals, meds, allergies)
-- Enhancing provider workflows
-- Improved validation and error handling
-- Strengthening appointment rules
+All core EMR models (notes, vitals, meds, allergies, problems), provider workflows, and appointment scheduling logic are implemented and tested.
 
 A lightweight frontend (provider + patient dashboards) will be introduced later to demonstrate full workflow usage.

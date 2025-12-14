@@ -1,8 +1,9 @@
 import * as appointmentService from "../services/appointmentService.js";
+import { logAudit } from "../services/auditLogService.js";
 import * as patientService from "../services/patientService.js";
+import * as providerAvailabilityService from "../services/providerAvailabilityService.js";
 import * as providerService from "../services/providerService.js";
 import * as visitNoteService from "../services/visitNoteService.js";
-import { logAudit } from "../services/auditLogService.js";
 
 export const createAppointment = async (req, res, next) => {
   try {
@@ -39,6 +40,30 @@ export const createAppointment = async (req, res, next) => {
       return res.status(404).json({ message: "Provider not found" });
     }
 
+    // Check provider availability FIRST
+    const availability = await providerAvailabilityService.getProviderAvailabilityByProviderId(providerId);
+    if (!availability) {
+      return res.status(400).json({ message: "Provider availability not set" });
+    }
+
+    // Determine working day validation
+    const days = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
+    const dayOfWeek = days[start.getDay()];
+
+    if (!availability.workingDays.includes(dayOfWeek)) {
+      return res.status(409).json({ message: "Provider is not available on this day" });
+    }
+
+    // Check time within availability
+    const availabilityStart = new Date(start);
+    availabilityStart.setHours(availability.startTime.getHours(), availability.startTime.getMinutes(), 0, 0);
+    const availabilityEnd = new Date(start);
+    availabilityEnd.setHours(availability.endTime.getHours(), availability.endTime.getMinutes(), 0, 0);
+
+    if (start < availabilityStart || end > availabilityEnd) {
+      return res.status(400).json({ message: "Appointment time is outside provider availability" });
+    }
+    // Check for overlaps
     await appointmentService.checkConflicts({
       providerId,
       start,
@@ -125,6 +150,7 @@ export const updateAppointment = async (req, res, next) => {
     if (!existing) {
       return res.status(404).json({ message: "Appointment not found" });
     }
+    const effectiveProviderId = providerId ?? existing.providerId;
 
     const updates = {
       updatedAt: new Date(),
@@ -143,36 +169,58 @@ export const updateAppointment = async (req, res, next) => {
       if (!provider) return res.status(404).json({ message: "Provider not found" });
       updates.providerId = providerId;
     }
-
-    // Time updates
     let start = existing.startTime;
     let end = existing.endTime;
+    // Time updates
+    if (startTime !== undefined || endTime !== undefined || providerId !== undefined) {
 
-    if (startTime !== undefined) start = new Date(startTime);
-    if (endTime !== undefined) end = new Date(endTime);
+      if (startTime !== undefined) start = new Date(startTime);
+      if (endTime !== undefined) end = new Date(endTime);
 
-    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-      return res.status(400).json({ message: "Invalid start or end time" });
+      if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+        return res.status(400).json({ message: "Invalid start or end time" });
+      }
+
+      if (start >= end) {
+        return res.status(400).json({ message: "Start time cannot be >= end time" });
+      }
+
+      updates.startTime = start;
+      updates.endTime = end;
+      // Check for conflicts if time or provider changed
+      const availability = await providerAvailabilityService.getProviderAvailabilityByProviderId(effectiveProviderId);
+      if (!availability) {
+        return res.status(400).json({ message: "Provider availability not set" });
+      }
+
+      // Determine working day validation
+      const days = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
+      const dayOfWeek = days[start.getDay()];
+
+      if (!availability.workingDays.includes(dayOfWeek)) {
+        return res.status(409).json({ message: "Provider is not available on this day" });
+      }
+
+      // Check time within availability
+      const availabilityStart = new Date(start);
+      availabilityStart.setHours(availability.startTime.getHours(), availability.startTime.getMinutes(), 0, 0);
+      const availabilityEnd = new Date(start);
+      availabilityEnd.setHours(availability.endTime.getHours(), availability.endTime.getMinutes(), 0, 0);
+
+      if (start < availabilityStart || end > availabilityEnd) {
+        return res.status(400).json({ message: "Appointment time is outside provider availability" });
+      }
+      // Check for overlaps
+      await appointmentService.checkConflicts({
+        providerId: effectiveProviderId,
+        start,
+        end,
+        ignoreId: appointmentId,
+      });
     }
-
-    if (start >= end) {
-      return res.status(400).json({ message: "Start time cannot be >= end time" });
-    }
-
-    updates.startTime = start;
-    updates.endTime = end;
 
     if (reason !== undefined) updates.reason = reason;
     if (status !== undefined) updates.status = status;
-
-    // Check for conflicts if time or provider changed
-
-    await appointmentService.checkConflicts({
-      providerId: providerId ?? existing.providerId,
-      start,
-      end,
-      ignoreId: appointmentId,
-    });
 
     const appointment = await appointmentService.updateAppointment(appointmentId, updates);
     await logAudit({

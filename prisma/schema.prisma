@@ -67,6 +67,7 @@ enum AuditEntity {
   ALLERGY
   MEDICATION
   VITAL
+  PROVIDER_AVAILABILITY
 }
 
 // ---------- USERS & AUTH ----------
@@ -120,13 +121,14 @@ model Provider {
   email     String   @unique
   createdAt DateTime @default(now())
 
-  appointments      Appointment[]
-  visitNotes        VisitNote[]
-  visitNoteVersions VisitNoteEntry[] @relation("ProviderEdits")
-  problems          Problem[]
-  allergies         Allergy[]
-  medications       Medication[]
-  vitals            Vital[]
+  appointments         Appointment[]
+  visitNotes           VisitNote[]
+  visitNoteVersions    VisitNoteEntry[]      @relation("ProviderEdits")
+  problems             Problem[]
+  allergies            Allergy[]
+  medications          Medication[]
+  vitals               Vital[]
+  providerAvailability ProviderAvailability?
 }
 
 // ---------- APPOINTMENTS ----------
@@ -278,4 +280,27 @@ model AuditLog {
   @@index([userId])
   @@index([entity, entityId])
   @@index([createdAt])
+}
+
+// ---------- PROVIDER AVAILABILITY ----------
+enum Weekday {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+}
+
+model ProviderAvailability {
+  id Int @id @default(autoincrement())
+
+  providerId Int      @unique
+  provider   Provider @relation(fields: [providerId], references: [id])
+
+  workingDays Weekday[]
+  startTime   DateTime
+  endTime     DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

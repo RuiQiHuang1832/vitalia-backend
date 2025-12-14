@@ -13,6 +13,7 @@ import problemRoutes from "./routes/problemRoutes.js";
 import allergyRoutes from "./routes/allergyRoutes.js";
 import medicationRoutes from "./routes/medicationRoutes.js";
 import vitalRoutes from "./routes/vitalRoutes.js";
+import providerAvailabilityRoutes from "./routes/providerAvailabilityRoutes.js";
 const app = express();
 
 app.use(express.json());
@@ -26,6 +27,7 @@ app.use("/problems", requireAuth, requireRole("PROVIDER", "ADMIN"), problemRoute
 app.use("/allergies", requireAuth, requireRole("PROVIDER", "ADMIN"), allergyRoutes);
 app.use("/medications", requireAuth, requireRole("PROVIDER", "ADMIN"), medicationRoutes);
 app.use("/vitals", requireAuth, vitalRoutes);
+app.use("/availability", requireAuth, requireRole("PROVIDER", "ADMIN"), providerAvailabilityRoutes);
 app.use(notFound);
 app.use(errorHandler);
 

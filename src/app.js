@@ -14,10 +14,12 @@ import allergyRoutes from "./routes/allergyRoutes.js";
 import medicationRoutes from "./routes/medicationRoutes.js";
 import vitalRoutes from "./routes/vitalRoutes.js";
 import providerAvailabilityRoutes from "./routes/providerAvailabilityRoutes.js";
+import cookieParser from "cookie-parser";
 const app = express();
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+app.use(cookieParser());
 app.use("/auth", authRoutes);
 app.use("/patients", requireAuth, requireRole("ADMIN", "PROVIDER"), patientRoutes);
 app.use("/providers", requireAuth, requireRole("ADMIN"), providerRoutes);

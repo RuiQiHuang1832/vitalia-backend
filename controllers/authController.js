@@ -122,8 +122,20 @@ export const login = async (req, res, next) => {
       where: { id: user.id },
       data: { refreshToken },
     });
+
+    // set refresh token as httpOnly cookie
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      path: "/auth",
+    })
     // Respond with tokens
-    return res.status(200).json({ accessToken, refreshToken, user: { id: user.id, email: user.email, role: user.role } });
+    return res.status(200).json({
+      accessToken,
+      user: { id: user.id, email: user.email, role: user.role },
+    });
+
   } catch (error) {
     console.error("Login error:", error);
     next(error);
@@ -132,7 +144,8 @@ export const login = async (req, res, next) => {
 
 export const refresh = async (req, res, next) => {
   try {
-    const { refreshToken } = req.body;
+    //httpOnly cookie with refresh token only this can read it
+    const refreshToken = req.cookies.refreshToken;
 
     // check if token is provided
     if (!refreshToken) {
@@ -162,8 +175,20 @@ export const refresh = async (req, res, next) => {
       where: { id: user.id },
       data: { refreshToken: newRefreshToken },
     });
-    // Respond with new tokens
-    return res.status(200).json({ accessToken: newAccessToken, refreshToken: newRefreshToken, user: { id: user.id, email: user.email, role: user.role } });
+    // rotate refresh token cookie
+    res.cookie("refreshToken", newRefreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      path: "/auth",
+    });
+
+    //  only return access token
+    return res.status(200).json({
+      accessToken: newAccessToken,
+      user: { id: user.id, email: user.email, role: user.role },
+    });
+
   } catch (error) {
     console.error("Refresh error:", error);
     next(error);

@@ -2,21 +2,6 @@
 
 ## auth
 
-### POST /auth/register
-
-Register a new user (Patient)
-
-**Body:**
-
-- `email` (string, required)
-- `password` (string, required, min 6 chars)
-- `firstName` (string, required)
-- `lastName` (string, required)
-- `dob` (string, required, YYYY-MM-DD)
-- `phone` (string, required)
-
-**Auth:** None
-
 ### POST /auth/login
 
 Login a user
@@ -35,6 +20,12 @@ Refresh access token
 **Body:**
 
 - `refreshToken` (string, required)
+
+**Auth:** None
+
+### POST /auth/logout
+
+Logout a user
 
 **Auth:** None
 
@@ -63,10 +54,11 @@ Create a new patient
 
 **Body:**
 
+- `email` (string, required)
+- `password` (string, required)
 - `firstName` (string, required)
 - `lastName` (string, required)
 - `dob` (string, required, YYYY-MM-DD)
-- `email` (string, required)
 - `phone` (string, required)
 
 **Auth:** ADMIN, PROVIDER
@@ -116,9 +108,10 @@ Create a new provider
 
 **Body:**
 
+- `email` (string, required)
+- `password` (string, required)
 - `firstName` (string, required)
 - `lastName` (string, required)
-- `email` (string, required)
 - `phone` (string, required)
 - `specialty` (string, required)
 

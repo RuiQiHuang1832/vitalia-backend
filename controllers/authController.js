@@ -36,7 +36,6 @@ export const register = async (req, res, next) => {
       return res.status(400).json({ message: dobError });
     }
 
-
     const { value: cleanedPhone, error: phoneError } = validatePhone(phone);
     if (phoneError) {
       return res.status(400).json({ message: phoneError });
@@ -64,7 +63,7 @@ export const register = async (req, res, next) => {
         email,
         password: hashed,
         role: "PATIENT",
-      }
+      },
     });
 
     await prisma.patient.create({
@@ -75,8 +74,8 @@ export const register = async (req, res, next) => {
         dob: parsedDob,
         phone: cleanedPhone,
         email: cleanedEmail,
-      }
-    })
+      },
+    });
 
     // Respond
     return res.status(201).json({
@@ -93,7 +92,7 @@ export const register = async (req, res, next) => {
 
 export const login = async (req, res, next) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, rememberMe } = req.body;
 
     // Basic validation
     if (!email || !password) {
@@ -116,11 +115,12 @@ export const login = async (req, res, next) => {
     // generate tokens
     const accessToken = generateAccessToken(user);
     const refreshToken = generateRefreshToken(user);
+    const sessionStartedAt = new Date();
 
     // store refresh token in DB
     await prisma.user.update({
       where: { id: user.id },
-      data: { refreshToken },
+      data: { refreshToken, sessionStartedAt, rememberMe: !!rememberMe },
     });
 
     // set refresh token as httpOnly cookie
@@ -129,13 +129,12 @@ export const login = async (req, res, next) => {
       secure: process.env.NODE_ENV === "production",
       sameSite: "strict",
       path: "/auth",
-    })
+    });
     // Respond with tokens
     return res.status(200).json({
       accessToken,
       user: { id: user.id, email: user.email, role: user.role },
     });
-
   } catch (error) {
     console.error("Login error:", error);
     next(error);
@@ -146,10 +145,11 @@ export const refresh = async (req, res, next) => {
   try {
     //httpOnly cookie with refresh token only this can read it
     const refreshToken = req.cookies.refreshToken;
+    const DAY = 1000 * 60 * 60 * 24;
 
     // check if token is provided
     if (!refreshToken) {
-      return res.status(400).json({ message: "Refresh token is required" });
+      return res.status(401).json({ message: "Refresh token is required" });
     }
 
     // confirm token validity by checking signature
@@ -163,10 +163,18 @@ export const refresh = async (req, res, next) => {
     const user = await prisma.user.findUnique({
       where: { id: payload.id },
     });
+
     // check if refresh token matches or is old token reuse
-    if (user.refreshToken !== refreshToken) {
+    if (!user || user.refreshToken !== refreshToken) {
       return res.status(403).json({ message: "Refresh token reused or invalid" });
     }
+    const MAX_SESSION_AGE = user.rememberMe ? 30 * DAY : 7 * DAY;
+
+    if (Date.now() - user.sessionStartedAt.getTime() > MAX_SESSION_AGE) {
+      res.clearCookie("refreshToken", { path: "/auth" });
+      return res.status(401).json({ message: "Session expired" });
+    }
+
     // generate new tokens
     const newRefreshToken = generateRefreshToken(user);
     const newAccessToken = generateAccessToken(user);
@@ -188,7 +196,6 @@ export const refresh = async (req, res, next) => {
       accessToken: newAccessToken,
       user: { id: user.id, email: user.email, role: user.role },
     });
-
   } catch (error) {
     console.error("Refresh error:", error);
     next(error);

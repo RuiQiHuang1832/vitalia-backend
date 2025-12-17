@@ -73,16 +73,17 @@ enum AuditEntity {
 // ---------- USERS & AUTH ----------
 
 model User {
-  id           Int      @id @default(autoincrement())
-  email        String   @unique
-  password     String
-  role         Role     @default(PATIENT)
-  createdAt    DateTime @default(now())
-  refreshToken String?
-
-  patient   Patient?
-  provider  Provider?
-  auditLogs AuditLog[]
+  id               Int        @id @default(autoincrement())
+  email            String     @unique
+  password         String
+  role             Role       @default(PATIENT)
+  createdAt        DateTime   @default(now())
+  refreshToken     String?
+  sessionStartedAt DateTime?
+  rememberMe       Boolean    @default(false)
+  patient          Patient?
+  provider         Provider?
+  auditLogs        AuditLog[]
 }
 
 // ---------- PATIENTS ----------

@@ -1,20 +1,20 @@
+import cookieParser from "cookie-parser";
 import "dotenv/config";
 import express from "express";
 import { errorHandler } from "../middleware/error.js";
 import { notFound } from "../middleware/notFound.js";
 import { requireAuth } from "../middleware/requireAuth.js";
 import { requireRole } from "../middleware/requireRole.js";
+import allergyRoutes from "./routes/allergyRoutes.js";
 import appointmentRoutes from "./routes/appointmentRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
+import medicationRoutes from "./routes/medicationRoutes.js";
 import patientRoutes from "./routes/patientRoutes.js";
+import problemRoutes from "./routes/problemRoutes.js";
+import providerAvailabilityRoutes from "./routes/providerAvailabilityRoutes.js";
 import providerRoutes from "./routes/providerRoutes.js";
 import visitNoteRoutes from "./routes/visitNoteRoutes.js";
-import problemRoutes from "./routes/problemRoutes.js";
-import allergyRoutes from "./routes/allergyRoutes.js";
-import medicationRoutes from "./routes/medicationRoutes.js";
 import vitalRoutes from "./routes/vitalRoutes.js";
-import providerAvailabilityRoutes from "./routes/providerAvailabilityRoutes.js";
-import cookieParser from "cookie-parser";
 const app = express();
 
 app.use(express.json());

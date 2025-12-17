@@ -1,11 +1,40 @@
 import prisma from "../src/lib/prisma.js";
+import bcrypt from "bcrypt";
 
-// Data is a clean payload prepared in the controller
-// This service does zero validation, that belongs to controller/middleware
-// Returns the created provider record
-export const createProvider = async (data) => {
-  return await prisma.provider.create({ data });
-}
+export const createProviderWithUser = async ({
+  email,
+  password,
+  firstName,
+  lastName,
+  phone,
+  specialty,
+}) => {
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  return prisma.$transaction(async (tx) => {
+    const user = await tx.user.create({
+      data: {
+        email,
+        password: hashedPassword,
+        role: "PROVIDER",
+      },
+    });
+
+    const provider = await tx.provider.create({
+      data: {
+        userId: user.id,
+        firstName,
+        lastName,
+        phone,
+        specialty,
+        email
+      },
+    });
+
+    return { user, provider };
+  });
+};
+
 // Returns provider by ID or null if not found
 export const getProviderById = async (id) => {
   return await prisma.provider.findUnique({ where: { id } });

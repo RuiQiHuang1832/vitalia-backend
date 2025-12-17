@@ -2,16 +2,23 @@ import * as patientService from "../services/patientService.js";
 import { parseDob } from "../utils/validateDate.js";
 import { validateEmail } from "../utils/validateEmail.js";
 import { validatePhone } from "../utils/validatePhone.js";
-
+import { logAudit } from "../services/auditLogService.js";
 export const createPatient = async (req, res, next) => {
   try {
-    const { firstName, lastName, dob, email, phone } = req.body;
-    // Basic validation
-    if (!firstName || !lastName || !dob || !email || !phone) {
+    const { email, password, firstName, lastName, dob, phone } = req.body;
+
+    // ---------- Basic validation ----------
+    if (!email || !password || !firstName || !lastName || !dob || !phone) {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
-    // trim strings
+    if (password.length < 6) {
+      return res.status(400).json({
+        message: "Password must be at least 6 characters long",
+      });
+    }
+
+    // Normalize input
     const cleaned = {
       firstName: firstName.trim(),
       lastName: lastName.trim(),
@@ -19,42 +26,70 @@ export const createPatient = async (req, res, next) => {
       phone: phone.trim(),
     };
 
-    // Validate DOB format (YYYY-MM-DD)
+    //  Validate DOB
     const { value: parsedDob, error: dobError } = parseDob(dob);
     if (dobError) {
       return res.status(400).json({ message: dobError });
     }
-    // Validate email and phone
-    const { value: cleanedEmail, error: emailError } = validateEmail(email);
+
+    //  Validate email
+    const { value: cleanedEmail, error: emailError } = validateEmail(cleaned.email);
     if (emailError) {
       return res.status(400).json({ message: emailError });
     }
 
-    const { value: cleanedPhone, error: phoneError } = validatePhone(phone);
+    //  Validate phone
+    const { value: cleanedPhone, error: phoneError } = validatePhone(cleaned.phone);
     if (phoneError) {
       return res.status(400).json({ message: phoneError });
     }
-    // Check for duplicates
+    //  Check if auth user already exists
+    const existingUser = await patientService.checkExistingPatientByEmail(cleanedEmail);
+
+    if (existingUser) {
+      return res.status(409).json({ message: "Email already registered" });
+    }
+
     const { existingEmail, existingPhone } =
       await patientService.checkDuplicatePatient(cleanedEmail, cleanedPhone);
 
-    // Log duplicates but allow creation to proceed
     if (existingEmail) {
-      console.warn(`Duplicate email detected: ${email} (ID ${existingEmail.id})`);
+      console.warn(`Duplicate patient email detected: ${cleanedEmail}`);
     }
 
     if (existingPhone) {
-      console.warn(`Duplicate phone detected: ${phone} (ID ${existingPhone.id})`);
+      console.warn(`Duplicate patient phone detected: ${cleanedPhone}`);
     }
-    // Create patient
-    const patient = await patientService.createPatient({ ...cleaned, dob: parsedDob });
-    res.status(201).json(patient);
-
+    const result = await patientService.createPatientWithUser({
+      email: cleanedEmail,
+      password,
+      firstName: cleaned.firstName,
+      lastName: cleaned.lastName,
+      dob: parsedDob,
+      phone: cleanedPhone,
+    });
+    await logAudit({
+      user: req.user,
+      action: 'CREATE',
+      entity: 'PATIENT',
+      entityId: result.patient.id,
+      details: { patient: result.patient }
+    });
+    return res.status(201).json({
+      id: result.patient.id,
+      userId: result.user.id,
+      email: result.user.email,
+      firstName: result.patient.firstName,
+      lastName: result.patient.lastName,
+      role: result.user.role,
+      createdAt: result.user.createdAt,
+    });
   } catch (error) {
-    console.error("Error creating patient:", error);
     next(error);
   }
-}
+};
+
+
 
 export const getPatient = async (req, res, next) => {
   try {

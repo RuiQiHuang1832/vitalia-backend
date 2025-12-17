@@ -1,16 +1,22 @@
+import { logAudit } from "../services/auditLogService.js";
 import * as providerService from "../services/providerService.js";
 import { validateEmail } from "../utils/validateEmail.js";
 import { validatePhone } from "../utils/validatePhone.js";
-
 export const createProvider = async (req, res, next) => {
   try {
-    const { firstName, lastName, email, phone, specialty } = req.body;
-    // Basic validation
-    if (!firstName || !lastName || !email || !phone || !specialty) {
+    const { firstName, lastName, email, phone, specialty, password } = req.body;
+
+    if (!firstName || !lastName || !email || !phone || !specialty || !password) {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
-    // trim strings
+    if (password.length < 6) {
+      return res.status(400).json({
+        message: "Password must be at least 6 characters long",
+      });
+    }
+
+    //  Normalize
     const cleaned = {
       firstName: firstName.trim(),
       lastName: lastName.trim(),
@@ -19,31 +25,55 @@ export const createProvider = async (req, res, next) => {
       specialty: specialty.trim(),
     };
 
-    // Validate email and phone
-    const { error: emailError } = validateEmail(email);
+    //  Validate email / phone
+    const { error: emailError } = validateEmail(cleaned.email);
     if (emailError) {
       return res.status(400).json({ message: emailError });
     }
 
-    const { error: phoneError } = validatePhone(phone);
+    const { error: phoneError } = validatePhone(cleaned.phone);
     if (phoneError) {
       return res.status(400).json({ message: phoneError });
     }
-    // Check for email uniqueness
-    const existing = await providerService.getProviderByEmail(email);
+
+    const existing = await providerService.getProviderByEmail(cleaned.email);
     if (existing) {
-      return res.status(400).json({ message: "Email already in use by another provider" });
+      return res
+        .status(409)
+        .json({ message: "Email already in use by another provider" });
     }
 
-    // Create provider
-    const provider = await providerService.createProvider(cleaned);
-    res.status(201).json(provider);
-
+    const result = await providerService.createProviderWithUser({
+      email: cleaned.email,
+      password,
+      firstName: cleaned.firstName,
+      lastName: cleaned.lastName,
+      phone: cleaned.phone,
+      specialty: cleaned.specialty,
+    });
+    await logAudit({
+      user: req.user,
+      action: 'CREATE',
+      entity: 'PROVIDER',
+      entityId: result.provider.id,
+      details: { provider: result.provider }
+    });
+    return res.status(201).json({
+      id: result.provider.id,
+      userId: result.user.id,
+      email: result.user.email,
+      firstName: result.provider.firstName,
+      lastName: result.provider.lastName,
+      specialty: result.provider.specialty,
+      role: result.user.role,
+      createdAt: result.user.createdAt,
+    });
   } catch (error) {
     console.error("Error creating provider:", error);
     next(error);
   }
-}
+};
+
 
 export const getProvider = async (req, res, next) => {
   try {

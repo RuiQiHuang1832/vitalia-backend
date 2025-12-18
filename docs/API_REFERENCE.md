@@ -23,6 +23,12 @@ Refresh access token
 
 **Auth:** None
 
+### GET /auth/me
+
+Validate current session and get user info
+
+**Auth:** Authenticated User
+
 ### POST /auth/logout
 
 Logout a user

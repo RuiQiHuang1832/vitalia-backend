@@ -38,9 +38,15 @@ export const login = async (req, res, next) => {
       sameSite: "strict",
       path: "/auth",
     });
+
+    res.cookie("accessToken", accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      path: "/",
+    });
     // Respond with tokens
     return res.status(200).json({
-      accessToken,
       user: { id: user.id, email: user.email, role: user.role },
     });
   } catch (error) {
@@ -80,6 +86,7 @@ export const refresh = async (req, res, next) => {
 
     if (Date.now() - user.sessionStartedAt.getTime() > MAX_SESSION_AGE) {
       res.clearCookie("refreshToken", { path: "/auth" });
+      res.clearCookie("accessToken", { path: "/" });
       return res.status(401).json({ message: "Session expired" });
     }
 
@@ -95,10 +102,15 @@ export const refresh = async (req, res, next) => {
       sameSite: "strict",
       path: "/auth",
     });
+    res.cookie("accessToken", newAccessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      path: "/",
+    });
 
     //  only return access token
     return res.status(200).json({
-      accessToken: newAccessToken,
       user: { id: user.id, email: user.email, role: user.role },
     });
   } catch (error) {
@@ -106,6 +118,13 @@ export const refresh = async (req, res, next) => {
     next(error);
   }
 };
+
+export const validate = async (req, res, next) => {
+  res.status(200).json({
+    id: req.user.id,
+    role: req.user.role,
+  });
+}
 
 export const logout = async (req, res, next) => {
   try {
@@ -115,12 +134,8 @@ export const logout = async (req, res, next) => {
       await userService.logoutByRefreshToken(refreshToken);
     }
     // Clear cookie regardless
-    res.clearCookie("refreshToken", {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      path: "/auth",
-    });
+    res.clearCookie("refreshToken", { path: "/auth" });
+    res.clearCookie("accessToken", { path: "/" });
 
     return res.sendStatus(204);
   } catch (error) {

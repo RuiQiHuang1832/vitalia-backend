@@ -1,4 +1,5 @@
 import cookieParser from "cookie-parser";
+import cors from "cors";
 import "dotenv/config";
 import express from "express";
 import { errorHandler } from "../middleware/error.js";
@@ -17,9 +18,16 @@ import visitNoteRoutes from "./routes/visitNoteRoutes.js";
 import vitalRoutes from "./routes/vitalRoutes.js";
 const app = express();
 
+const corsOptions = {
+  origin: 'http://localhost:3000',
+  credentials: true,
+}
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
+app.use(cors(corsOptions))
+app.options(/.*/, cors(corsOptions)) // handles all preflight OPTIONS requests
 app.use("/auth", authRoutes);
 app.use("/patients", requireAuth, requireRole("ADMIN", "PROVIDER"), patientRoutes);
 app.use("/providers", requireAuth, requireRole("ADMIN"), providerRoutes);

@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
 
 export const requireAuth = (req, res, next) => {
+  // Before I was using auth headers, now using cookies
   const accessToken = req.cookies.accessToken;
 
   if (!accessToken) {
@@ -12,6 +13,10 @@ export const requireAuth = (req, res, next) => {
     req.user = payload;
     next();
   } catch {
+    //Clear ONLY the access token
+    res.clearCookie('accessToken', {
+      path: '/',
+    })
     return res.status(401).json({ message: 'Invalid or expired access token' });
   }
 };

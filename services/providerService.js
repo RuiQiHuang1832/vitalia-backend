@@ -62,12 +62,24 @@ export const getAllProviders = async (page, limit) => {
 };
 
 // Updates provider by ID with provided data
-export const updateProvider = async (id, data) => {
-  return await prisma.provider.update({
-    where: { id },
-    data,
+export const updateProviderAndUser = async (providerId, userId, data) => {
+  return prisma.$transaction(async (tx) => {
+    // If email is being changed, update the auth user's email too
+    if (data.email !== undefined && userId) {
+      await tx.user.update({
+        where: { id: userId },
+        data: { email: data.email },
+      });
+    }
+
+    const provider = await tx.provider.update({
+      where: { id: providerId },
+      data,
+    });
+
+    return provider;
   });
-}
+};
 
 // Deletes provider by ID
 export const deleteProvider = async (id) => {

@@ -161,7 +161,7 @@ export const updateProvider = async (req, res, next) => {
     }
 
     // Perform update
-    const provider = await providerService.updateProvider(providerId, updates);
+    const provider = await providerService.updateProviderAndUser(providerId, existing.userId, updates);
     res.status(200).json(provider);
   } catch (error) {
     next(error);

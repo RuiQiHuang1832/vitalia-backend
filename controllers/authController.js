@@ -23,9 +23,11 @@ export const login = async (req, res, next) => {
     if (!isMatch) {
       return res.status(401).json({ message: "Invalid email or password" });
     }
+    const jwtUser = userService.toJwtUser(user);
+
     // generate tokens
-    const accessToken = generateAccessToken(user);
-    const refreshToken = generateRefreshToken(user);
+    const accessToken = generateAccessToken(jwtUser);
+    const refreshToken = generateRefreshToken(jwtUser);
     const sessionStartedAt = new Date();
 
     // store refresh token in DB
@@ -47,14 +49,17 @@ export const login = async (req, res, next) => {
     });
     // Respond with tokens
     return res.status(200).json({
-      user: { id: user.id, email: user.email, role: user.role },
+      user: jwtUser,
     });
   } catch (error) {
     console.error("Login error:", error);
     next(error);
   }
 };
-
+// Manually called when access token expired
+// If refresh token is valid, issue new access and refresh tokens
+// else respond with 401/403 as appropriate
+// then ask users to login again
 export const refresh = async (req, res, next) => {
   try {
     //httpOnly cookie with refresh token only this can read it
@@ -89,10 +94,10 @@ export const refresh = async (req, res, next) => {
       res.clearCookie("accessToken", { path: "/" });
       return res.status(401).json({ message: "Session expired" });
     }
-
+    const jwtUser = userService.toJwtUser(user);
     // generate new tokens
-    const newRefreshToken = generateRefreshToken(user);
-    const newAccessToken = generateAccessToken(user);
+    const newRefreshToken = generateRefreshToken(jwtUser);
+    const newAccessToken = generateAccessToken(jwtUser);
     // store refresh token in DB
     await userService.updateUserRefreshToken(user.id, newRefreshToken, user.sessionStartedAt, user.rememberMe);
     // rotate refresh token cookie
@@ -109,9 +114,8 @@ export const refresh = async (req, res, next) => {
       path: "/",
     });
 
-    //  only return access token
     return res.status(200).json({
-      user: { id: user.id, email: user.email, role: user.role },
+      user: jwtUser,
     });
   } catch (error) {
     console.error("Refresh error:", error);
@@ -122,7 +126,9 @@ export const refresh = async (req, res, next) => {
 export const validate = async (req, res, next) => {
   res.status(200).json({
     id: req.user.id,
+    email: req.user.email,
     role: req.user.role,
+    displayName: req.user.displayName,
   });
 }
 

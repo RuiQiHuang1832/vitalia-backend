@@ -1,8 +1,8 @@
+import { logAudit } from "../services/auditLogService.js";
 import * as patientService from "../services/patientService.js";
 import { parseDob } from "../utils/validateDate.js";
 import { validateEmail } from "../utils/validateEmail.js";
 import { validatePhone } from "../utils/validatePhone.js";
-import { logAudit } from "../services/auditLogService.js";
 export const createPatient = async (req, res, next) => {
   try {
     const { email, password, firstName, lastName, dob, phone } = req.body;
@@ -179,7 +179,7 @@ export const updatePatient = async (req, res, next) => {
       updates.dob = parsedDob;
     }
     // Perform update
-    const patient = await patientService.updatePatient(patientId, updates);
+    const patient = await patientService.updatePatientAndUser(patientId, existing.userId, updates);
     res.status(200).json(patient);
   } catch (error) {
     next(error);

@@ -63,12 +63,25 @@ export const getAllPatients = async (page, limit) => {
 };
 
 // Updates patient by ID with provided data
-export const updatePatient = async (id, data) => {
-  return await prisma.patient.update({
-    where: { id },
-    data,
+export const updatePatientAndUser = async (patientId, userId, data) => {
+  return prisma.$transaction(async (tx) => {
+    // If email is being changed, update the auth user's email too
+    if (data.email !== undefined && userId) {
+      await tx.user.update({
+        where: { id: userId },
+        data: { email: data.email },
+      });
+    }
+
+    const patient = await tx.patient.update({
+      where: { id: patientId },
+      data,
+    });
+
+    return patient;
   });
-}
+};
+
 
 // Deletes patient by ID
 export const deletePatient = async (id) => {

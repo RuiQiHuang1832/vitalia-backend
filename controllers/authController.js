@@ -3,6 +3,25 @@ import jwt from "jsonwebtoken";
 import * as userService from "../services/authService.js";
 import { generateAccessToken, generateRefreshToken } from "../utils/jwt.js";
 
+const getRefreshCookieOptions = () => ({
+  httpOnly: true,
+  secure: true,
+  sameSite: "none",
+  path: "/auth",
+});
+
+const getAccessCookieOptions = () => ({
+  httpOnly: true,
+  secure: true,
+  sameSite: "none",
+  path: "/",
+});
+
+const setAuthCookies = (res, { accessToken, refreshToken }) => {
+  res.cookie("refreshToken", refreshToken, getRefreshCookieOptions());
+  res.cookie("accessToken", accessToken, getAccessCookieOptions());
+};
+
 export const login = async (req, res, next) => {
   try {
     const { email, password, rememberMe } = req.body;
@@ -32,22 +51,10 @@ export const login = async (req, res, next) => {
 
     // store refresh token in DB
     await userService.updateUserRefreshToken(user.id, refreshToken, sessionStartedAt, !!rememberMe);
-    const isProd = process.env.NODE_ENV === 'production'
 
     // set refresh token as httpOnly cookie
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: isProd,
-      sameSite: isProd ? 'none' : 'lax',
-      path: "/auth",
-    });
+    setAuthCookies(res, { accessToken, refreshToken });
 
-    res.cookie("accessToken", accessToken, {
-      httpOnly: true,
-      secure: isProd,
-      sameSite: isProd ? 'none' : 'lax',
-      path: "/",
-    });
     // Respond with tokens
     return res.status(200).json({
       user: jwtUser,
@@ -102,20 +109,8 @@ export const refresh = async (req, res, next) => {
     // store refresh token in DB
     await userService.updateUserRefreshToken(user.id, newRefreshToken, user.sessionStartedAt, user.rememberMe);
     // rotate refresh token cookie
-    const isProd = process.env.NODE_ENV === 'production'
+    setAuthCookies(res, { accessToken: newAccessToken, refreshToken: newRefreshToken });
 
-    res.cookie("refreshToken", newRefreshToken, {
-      httpOnly: true,
-      secure: isProd,
-      sameSite: isProd ? 'none' : 'lax',
-      path: "/auth",
-    });
-    res.cookie("accessToken", newAccessToken, {
-      httpOnly: true,
-      secure: isProd,
-      sameSite: isProd ? 'none' : 'lax',
-      path: "/",
-    });
 
     return res.status(200).json({
       user: jwtUser,

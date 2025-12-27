@@ -19,10 +19,10 @@ import vitalRoutes from "./routes/vitalRoutes.js";
 const app = express();
 
 const corsOptions = {
-  origin: 'http://localhost:3000',
+  origin: ['http://localhost:3000', 'https://vitalia-frontend-three.vercel.app'],
   credentials: true,
 }
-
+app.set('trust proxy', 1) // trust first proxy
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());

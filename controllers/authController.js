@@ -32,19 +32,20 @@ export const login = async (req, res, next) => {
 
     // store refresh token in DB
     await userService.updateUserRefreshToken(user.id, refreshToken, sessionStartedAt, !!rememberMe);
+    const isProd = process.env.NODE_ENV === 'production'
 
     // set refresh token as httpOnly cookie
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "none",
+      secure: isProd,
+      sameSite: isProd ? 'none' : 'lax',
       path: "/auth",
     });
 
     res.cookie("accessToken", accessToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "none",
+      secure: isProd,
+      sameSite: isProd ? 'none' : 'lax',
       path: "/",
     });
     // Respond with tokens
@@ -101,16 +102,18 @@ export const refresh = async (req, res, next) => {
     // store refresh token in DB
     await userService.updateUserRefreshToken(user.id, newRefreshToken, user.sessionStartedAt, user.rememberMe);
     // rotate refresh token cookie
+    const isProd = process.env.NODE_ENV === 'production'
+
     res.cookie("refreshToken", newRefreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "none",
+      secure: isProd,
+      sameSite: isProd ? 'none' : 'lax',
       path: "/auth",
     });
     res.cookie("accessToken", newAccessToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "none",
+      secure: isProd,
+      sameSite: isProd ? 'none' : 'lax',
       path: "/",
     });
 

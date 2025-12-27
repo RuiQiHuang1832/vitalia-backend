@@ -22,7 +22,8 @@ const corsOptions = {
   origin: ['http://localhost:3000', 'https://vitalia-frontend-three.vercel.app'],
   credentials: true,
 }
-app.set('trust proxy', 1) // trust first proxy
+app.set('trust proxy', 1)
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());

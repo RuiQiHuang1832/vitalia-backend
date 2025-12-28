@@ -41,6 +41,14 @@ export const getPatientById = async (id) => {
   return await prisma.patient.findUnique({ where: { id } });
 }
 
+export const getPatientByUserId = async (userId) => {
+  return await prisma.user.findUnique({
+    where: { id: userId },
+    include: { patient: true },
+  });
+}
+
+
 // Returns paginated list of patients
 export const getAllPatients = async (page, limit) => {
   const skip = (page - 1) * limit;

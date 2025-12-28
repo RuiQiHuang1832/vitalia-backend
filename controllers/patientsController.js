@@ -89,7 +89,27 @@ export const createPatient = async (req, res, next) => {
   }
 };
 
-
+export const getPatientByUserId = async (req, res, next) => {
+  try {
+    // Get provider by ID
+    const { id } = req.params;
+    // Validate ID is a number
+    const uId = Number(id);
+    // If NaN, return 400
+    if (isNaN(uId)) {
+      return res.status(400).json({ message: "Invalid user ID" });
+    }
+    // Fetch provider
+    const patient = await patientService.getPatientByUserId(uId);
+    // If not found, return 404
+    if (!patient) {
+      return res.status(404).json({ message: "Patient not found" });
+    }
+    res.status(200).json(patient.patient);
+  } catch (error) {
+    next(error);
+  }
+}
 
 export const getPatient = async (req, res, next) => {
   try {

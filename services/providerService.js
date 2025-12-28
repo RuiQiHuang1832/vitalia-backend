@@ -40,6 +40,13 @@ export const getProviderById = async (id) => {
   return await prisma.provider.findUnique({ where: { id } });
 }
 
+export const getProviderByUserId = async (userId) => {
+  return await prisma.user.findUnique({
+    where: { id: userId },
+    include: { provider: true },
+  });
+}
+
 // Returns paginated list of providers
 export const getAllProviders = async (page, limit) => {
   const skip = (page - 1) * limit;

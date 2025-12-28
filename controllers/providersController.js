@@ -74,6 +74,28 @@ export const createProvider = async (req, res, next) => {
   }
 };
 
+export const getProviderByUserId = async (req, res, next) => {
+  try {
+    // Get provider by ID
+    const { id } = req.params;
+    // Validate ID is a number
+    const uId = Number(id);
+    // If NaN, return 400
+    if (isNaN(uId)) {
+      return res.status(400).json({ message: "Invalid user ID" });
+    }
+    // Fetch provider
+    const provider = await providerService.getProviderByUserId(uId);
+    // If not found, return 404
+    if (!provider) {
+      return res.status(404).json({ message: "Provider not found" });
+    }
+    res.status(200).json(provider.provider);
+  } catch (error) {
+    next(error);
+  }
+}
+
 
 export const getProvider = async (req, res, next) => {
   try {

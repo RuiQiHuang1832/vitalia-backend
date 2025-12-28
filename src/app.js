@@ -30,8 +30,8 @@ app.use(cookieParser());
 app.use(cors(corsOptions))
 app.options(/.*/, cors(corsOptions)) // handles all preflight OPTIONS requests
 app.use("/auth", authRoutes);
-app.use("/patients", requireAuth, requireRole("ADMIN", "PROVIDER"), patientRoutes);
-app.use("/providers", requireAuth, requireRole("ADMIN"), providerRoutes);
+app.use("/patients", requireAuth, patientRoutes);
+app.use("/providers", requireAuth, providerRoutes);
 app.use("/appointments", requireAuth, appointmentRoutes);
 app.use("/notes", requireAuth, requireRole("PROVIDER"), visitNoteRoutes);
 app.use("/problems", requireAuth, requireRole("PROVIDER", "ADMIN"), problemRoutes);

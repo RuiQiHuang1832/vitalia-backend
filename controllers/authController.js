@@ -126,7 +126,8 @@ export const validate = async (req, res, next) => {
     id: req.user.id,
     email: req.user.email,
     role: req.user.role,
-    displayName: req.user.displayName,
+    providerId: req.user.providerId ?? null,
+    patientId: req.user.patientId ?? null,
   });
 }
 

@@ -4,8 +4,8 @@ export const getUserByEmail = async (email) => {
   return await prisma.user.findUnique({
     where: { email },
     include: {
-      patient: { select: { firstName: true } },
-      provider: { select: { firstName: true } },
+      patient: { select: { firstName: true, id:true } },
+      provider: { select: { firstName: true, id: true } },
     }
   });
 }
@@ -14,8 +14,8 @@ export const getUserById = async (id) => {
   return await prisma.user.findUnique({
     where: { id },
     include: {
-      patient: { select: { firstName: true } },
-      provider: { select: { firstName: true } },
+      patient: { select: { firstName: true, id:true } },
+      provider: { select: { firstName: true, id: true } },
     }
   });
 }
@@ -35,17 +35,12 @@ export const logoutByRefreshToken = async (refreshToken) => {
 }
 
 
-
 export const toJwtUser = (user) => {
-  const displayName =
-    (user.role === "PATIENT" && user.patient?.firstName) ||
-    ((user.role === "PROVIDER") && user.provider?.firstName) ||
-    "Admin";
-
   return {
     id: user.id,
     email: user.email,
     role: user.role,
-    displayName,
+    providerId: user.provider?.id || null,
+    patientId: user.patient?.id || null,
   };
 };

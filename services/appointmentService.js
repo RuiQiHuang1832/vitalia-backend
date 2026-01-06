@@ -18,6 +18,9 @@ export const getProviderAppointments = async (id, page, limit, status) => {
       skip: offset,
       take: limit,
       orderBy: { createdAt: "desc" },
+      include: {
+        patient:true, 
+      }
     }),
     prisma.appointment.count({ where: whereClause }),
   ]);

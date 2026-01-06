@@ -70,6 +70,12 @@ enum AuditEntity {
   PROVIDER_AVAILABILITY
 }
 
+enum Gender {
+  MALE
+  FEMALE
+  UNSPECIFIED
+}
+
 // ---------- USERS & AUTH ----------
 
 model User {
@@ -97,6 +103,7 @@ model Patient {
   firstName    String
   lastName     String
   dob          DateTime
+  gender       Gender        @default(UNSPECIFIED)
   phone        String
   email        String
   createdAt    DateTime      @default(now())

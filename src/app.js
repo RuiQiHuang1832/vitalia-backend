@@ -29,6 +29,11 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(cors(corsOptions))
 app.options(/.*/, cors(corsOptions)) // handles all preflight OPTIONS requests
+
+app.get('/health', (req, res) => {
+  res.status(200).send('Server is awake!');
+});
+
 app.use("/auth", authRoutes);
 app.use("/patients", requireAuth, patientRoutes);
 app.use("/providers", requireAuth, providerRoutes);

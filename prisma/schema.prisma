@@ -76,6 +76,12 @@ enum Gender {
   UNSPECIFIED
 }
 
+enum PatientStatus {
+  ACTIVE
+  INACTIVE
+  DISCHARGED
+}
+
 // ---------- USERS & AUTH ----------
 
 model User {
@@ -107,6 +113,7 @@ model Patient {
   phone        String
   email        String
   createdAt    DateTime      @default(now())
+  status       PatientStatus @default(ACTIVE)
   appointments Appointment[]
   problems     Problem[]
   allergies    Allergy[]

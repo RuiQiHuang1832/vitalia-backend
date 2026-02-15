@@ -169,12 +169,19 @@ export const updatePatient = async (req, res, next) => {
       return res.status(404).json({ message: "Patient not found" });
     }
 
-    const { firstName, lastName, dob, email, phone } = req.body;
+    const { firstName, lastName, dob, email, phone, status } = req.body;
 
     // Prepare updates object
     const updates = {};
     if (firstName !== undefined) updates.firstName = firstName.trim();
     if (lastName !== undefined) updates.lastName = lastName.trim();
+    if (status !== undefined) {
+      const validStatuses = ["ACTIVE", "INACTIVE", "DISCHARGED"];
+      if (!validStatuses.includes(status)) {
+        return res.status(400).json({ message: "Invalid status value" });
+      }
+      updates.status = status;
+    }
     if (email !== undefined) {
       const { value: cleanedEmail, error: emailError } = validateEmail(email);
       if (emailError) {

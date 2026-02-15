@@ -58,6 +58,23 @@ export const getAllPatients = async (page, limit) => {
       skip,
       take: limit,
       orderBy: { createdAt: "desc" },
+      include: {
+        appointments: {
+          where: {
+            status: 'COMPLETED',
+            startTime: {
+              lte: new Date(),
+            },
+          },
+          orderBy: {
+            startTime: 'desc',
+          },
+          take: 1,
+          select: {
+            startTime: true,
+          },
+        },
+      },
     }),
     prisma.patient.count(),
   ]);

@@ -3,6 +3,21 @@ import * as patientService from "../services/patientService.js";
 import { parseDob } from "../utils/validateDate.js";
 import { validateEmail } from "../utils/validateEmail.js";
 import { validatePhone } from "../utils/validatePhone.js";
+
+const validStatuses = ["ACTIVE", "INACTIVE", "DISCHARGED"];
+const validSortBy = [
+  "createdAt",
+  "firstName",
+  "lastName",
+  "dob",
+  "status",
+  "id",
+  "name",
+  "age",
+  "mrn",
+];
+const validSortOrder = ["asc", "desc"];
+
 export const createPatient = async (req, res, next) => {
   try {
     const { email, password, firstName, lastName, dob, phone } = req.body;
@@ -135,25 +150,67 @@ export const getPatient = async (req, res, next) => {
 
 export const getAllPatients = async (req, res, next) => {
   try {
-    // Handle pagination
-    const { page, limit } = req.query;
+    const { page, limit, name, status, sortBy, sortOrder } = req.query;
+
     const pageNumber = page ? Number(page) : 1;
     const limitNumber = limit ? Number(limit) : 10;
-    // Validate numeric & positive
-    if (isNaN(pageNumber) || pageNumber < 1) {
+
+    if (!Number.isInteger(pageNumber) || pageNumber < 1) {
       return res.status(400).json({ message: "Invalid page number" });
     }
 
-    if (isNaN(limitNumber) || limitNumber < 1) {
+    if (!Number.isInteger(limitNumber) || limitNumber < 1) {
       return res.status(400).json({ message: "Invalid limit value" });
     }
-    // Fetch patients
-    const patients = await patientService.getAllPatients(pageNumber, limitNumber);
-    res.status(200).json(patients);
+
+    // name guard
+    const normalizedName =
+      typeof name === "string" ? name.trim() : undefined;
+
+    if (normalizedName !== undefined && normalizedName.length > 100) {
+      return res.status(400).json({ message: "Name filter too long" });
+    }
+
+    // status guard (supports single or repeated query params)
+    const statusValues = Array.isArray(status) ? status : typeof status === "string"
+        ? [status]
+        : [];
+
+    const normalizedStatus = statusValues
+      .map((s) => String(s).trim().toUpperCase())
+      .filter(Boolean);
+
+    const hasInvalidStatus = normalizedStatus.some(
+      (s) => !validStatuses.includes(s)
+    );
+
+    if (hasInvalidStatus) {
+      return res.status(400).json({ message: "Invalid status filter" });
+    }
+
+    const normalizedSortBy =
+      typeof sortBy === "string" && validSortBy.includes(sortBy)
+        ? sortBy
+        : "createdAt";
+    const normalizedSortOrder =
+      typeof sortOrder === "string" && validSortOrder.includes(sortOrder.toLowerCase())
+        ? sortOrder.toLowerCase()
+        : "desc";
+
+    const patients = await patientService.getAllPatients(
+      pageNumber,
+      limitNumber,
+      normalizedName || undefined,
+      normalizedStatus.length ? normalizedStatus : undefined,
+      normalizedSortBy,
+      normalizedSortOrder
+    );
+
+    return res.status(200).json(patients);
   } catch (error) {
     next(error);
   }
-}
+};
 
 export const updatePatient = async (req, res, next) => {
   try {
@@ -176,7 +233,7 @@ export const updatePatient = async (req, res, next) => {
     if (firstName !== undefined) updates.firstName = firstName.trim();
     if (lastName !== undefined) updates.lastName = lastName.trim();
     if (status !== undefined) {
-      const validStatuses = ["ACTIVE", "INACTIVE", "DISCHARGED"];
+
       if (!validStatuses.includes(status)) {
         return res.status(400).json({ message: "Invalid status value" });
       }

@@ -50,14 +50,67 @@ export const getPatientByUserId = async (userId) => {
 
 
 // Returns paginated list of patients
-export const getAllPatients = async (page, limit) => {
+export const getAllPatients = async (
+  page,
+  limit,
+  name,
+  status,
+  sortBy = "createdAt",
+  sortOrder = "desc"
+) => {
   const skip = (page - 1) * limit;
+  const nameParts = name?.trim().split(/\s+/) ?? []
+
+  const where = {
+    ...(name && {
+      OR: nameParts.length === 1
+          ? [
+            { firstName: { contains: nameParts[0], mode: "insensitive" } },
+            { lastName: { contains: nameParts[0], mode: "insensitive" } },
+          ]
+          : [
+            {
+              AND: [
+                { firstName: { contains: nameParts[0], mode: "insensitive" } },
+                { lastName: { contains: nameParts[1], mode: "insensitive" } },
+              ],
+            },
+            {
+              AND: [
+                { firstName: { contains: nameParts[1], mode: "insensitive" } },
+                { lastName: { contains: nameParts[0], mode: "insensitive" } },
+              ],
+            },
+          ],
+    }),
+
+    ...(status && {
+      status: { in: status },
+    }),
+  }
+  const orderBy = (() => {
+    if (sortBy === "name") {
+      return [{ firstName: sortOrder }, { lastName: sortOrder }];
+    }
+
+    if (sortBy === "age") {
+      const dobOrder = sortOrder === "asc" ? "desc" : "asc";
+      return { dob: dobOrder };
+    }
+
+    if (sortBy === "mrn") {
+      return { id: sortOrder };
+    }
+
+    return { [sortBy]: sortOrder };
+  })();
 
   const [patients, totalCount] = await Promise.all([
     prisma.patient.findMany({
       skip,
       take: limit,
-      orderBy: { createdAt: "desc" },
+      orderBy,
+      where,
       include: {
         appointments: {
           where: {
@@ -76,12 +129,14 @@ export const getAllPatients = async (page, limit) => {
         },
       },
     }),
-    prisma.patient.count(),
+    prisma.patient.count({ where }),
   ]);
+  const totalPages = Math.ceil(totalCount / limit);
 
   return {
     data: patients,
     totalCount,
+    totalPages,
     page,
     limit,
   };

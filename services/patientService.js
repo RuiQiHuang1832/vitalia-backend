@@ -38,7 +38,29 @@ export const createPatientWithUser = async ({
 
 // Returns patient by ID or null if not found
 export const getPatientById = async (id) => {
-  return await prisma.patient.findUnique({ where: { id } });
+  return await prisma.patient.findUnique({
+    where: { id },
+    include: {
+      appointments: {
+        orderBy: {
+          startTime: 'desc',
+        },
+        include: {
+          visitNote: {
+            include: {
+              versions: {
+                orderBy: { version: 'desc' },
+              }
+            }
+          }
+        },
+      },
+      problems: true,
+      allergies: true,
+      medications: true,
+      vitals: true,
+    },
+  });
 }
 
 export const getPatientByUserId = async (userId) => {
@@ -64,24 +86,24 @@ export const getAllPatients = async (
   const where = {
     ...(name && {
       OR: nameParts.length === 1
-          ? [
-            { firstName: { contains: nameParts[0], mode: "insensitive" } },
-            { lastName: { contains: nameParts[0], mode: "insensitive" } },
-          ]
-          : [
-            {
-              AND: [
-                { firstName: { contains: nameParts[0], mode: "insensitive" } },
-                { lastName: { contains: nameParts[1], mode: "insensitive" } },
-              ],
-            },
-            {
-              AND: [
-                { firstName: { contains: nameParts[1], mode: "insensitive" } },
-                { lastName: { contains: nameParts[0], mode: "insensitive" } },
-              ],
-            },
-          ],
+        ? [
+          { firstName: { contains: nameParts[0], mode: "insensitive" } },
+          { lastName: { contains: nameParts[0], mode: "insensitive" } },
+        ]
+        : [
+          {
+            AND: [
+              { firstName: { contains: nameParts[0], mode: "insensitive" } },
+              { lastName: { contains: nameParts[1], mode: "insensitive" } },
+            ],
+          },
+          {
+            AND: [
+              { firstName: { contains: nameParts[1], mode: "insensitive" } },
+              { lastName: { contains: nameParts[0], mode: "insensitive" } },
+            ],
+          },
+        ],
     }),
 
     ...(status && {

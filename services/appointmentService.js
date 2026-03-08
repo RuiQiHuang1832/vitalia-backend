@@ -1,16 +1,20 @@
 import prisma from "../src/lib/prisma.js";
-import {HttpError} from "../utils/HttpError.js";
+import { HttpError } from "../utils/HttpError.js";
 
 export const createAppointment = async (data) => {
   return await prisma.appointment.create({ data });
 }
 
 export const getProviderAppointments = async (id, page, limit, status) => {
-  const normalizedStatus = status ? status.toUpperCase() : undefined;
   const offset = (page - 1) * limit;
+  const statusFilter = Array.isArray(status)
+    ? status.map((s) => s.toUpperCase())
+    : status
+      ? [status.toUpperCase()]
+      : undefined;
   const whereClause = {
     providerId: id,
-    status: normalizedStatus,
+    ...(statusFilter && { status: { in: statusFilter } }),
   };
   const [appointment, totalCount] = await Promise.all([
     prisma.appointment.findMany({
@@ -19,7 +23,7 @@ export const getProviderAppointments = async (id, page, limit, status) => {
       take: limit,
       orderBy: { createdAt: "desc" },
       include: {
-        patient:true, 
+        patient: true,
       }
     }),
     prisma.appointment.count({ where: whereClause }),
@@ -30,6 +34,7 @@ export const getProviderAppointments = async (id, page, limit, status) => {
     totalCount,
     page,
     limit,
+    totalPages: Math.ceil(totalCount / limit),
   };
 }
 
@@ -65,7 +70,7 @@ export const checkConflicts = async ({ providerId, start, end, ignoreId = null }
     },
   });
 
-if (conflicts) {
+  if (conflicts) {
     throw new HttpError(409, "Appointment time conflicts with existing appointment");
-}
+  }
 };

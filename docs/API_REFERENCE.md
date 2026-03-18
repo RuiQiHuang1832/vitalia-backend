@@ -407,8 +407,8 @@ Create provider availability
 
 **Body:**
 
-- `startTime` (string, required, ISO Date)
-- `endTime` (string, required, ISO Date)
+- `startTime` (string, required, "HH:mm" format, e.g. "09:00")
+- `endTime` (string, required, "HH:mm" format, e.g. "17:00")
 - `workingDays` (array of strings, required - e.g. ["MONDAY", "TUESDAY"])
 
 **Auth:** PROVIDER, ADMIN
@@ -419,8 +419,8 @@ Update provider availability
 
 **Body:**
 
-- `startTime` (string, optional)
-- `endTime` (string, optional)
+- `startTime` (string, optional, "HH:mm" format)
+- `endTime` (string, optional, "HH:mm" format)
 - `workingDays` (array of strings, optional)
 
 **Auth:** PROVIDER, ADMIN

@@ -21,7 +21,7 @@ export const getProviderAppointments = async (id, page, limit, status) => {
       where: whereClause,
       skip: offset,
       take: limit,
-      orderBy: { createdAt: "desc" },
+      orderBy: { startTime: "asc" },
       include: {
         patient: true,
       }

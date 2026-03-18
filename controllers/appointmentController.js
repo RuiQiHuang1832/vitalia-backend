@@ -54,11 +54,13 @@ export const createAppointment = async (req, res, next) => {
       return res.status(409).json({ message: "Provider is not available on this day" });
     }
 
-    // Check time within availability
+    // Check time within availability (startTime/endTime are "HH:mm" strings)
+    const [startH, startM] = availability.startTime.split(':').map(Number);
+    const [endH, endM] = availability.endTime.split(':').map(Number);
     const availabilityStart = new Date(start);
-    availabilityStart.setHours(availability.startTime.getHours(), availability.startTime.getMinutes(), 0, 0);
+    availabilityStart.setHours(startH, startM, 0, 0);
     const availabilityEnd = new Date(start);
-    availabilityEnd.setHours(availability.endTime.getHours(), availability.endTime.getMinutes(), 0, 0);
+    availabilityEnd.setHours(endH, endM, 0, 0);
 
     if (start < availabilityStart || end > availabilityEnd) {
       return res.status(400).json({ message: "Appointment time is outside provider availability" });
@@ -201,11 +203,13 @@ export const updateAppointment = async (req, res, next) => {
         return res.status(409).json({ message: "Provider is not available on this day" });
       }
 
-      // Check time within availability
+      // Check time within availability (startTime/endTime are "HH:mm" strings)
+      const [startH, startM] = availability.startTime.split(':').map(Number);
+      const [endH, endM] = availability.endTime.split(':').map(Number);
       const availabilityStart = new Date(start);
-      availabilityStart.setHours(availability.startTime.getHours(), availability.startTime.getMinutes(), 0, 0);
+      availabilityStart.setHours(startH, startM, 0, 0);
       const availabilityEnd = new Date(start);
-      availabilityEnd.setHours(availability.endTime.getHours(), availability.endTime.getMinutes(), 0, 0);
+      availabilityEnd.setHours(endH, endM, 0, 0);
 
       if (start < availabilityStart || end > availabilityEnd) {
         return res.status(400).json({ message: "Appointment time is outside provider availability" });

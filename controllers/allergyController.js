@@ -1,11 +1,18 @@
 import * as allergyService from "../services/allergyService.js";
 import * as patientService from "../services/patientService.js";
+import * as providerService from "../services/providerService.js";
 import { logAudit } from "../services/auditLogService.js";
 
 export const createAllergy = async (req, res, next) => {
   try {
     const { patientId, category, substance, reaction, severity, notes } = req.body;
-    const recordedById = req.user.id;
+
+    const user = await providerService.getProviderByUserId(req.user.id);
+    if (!user?.provider) {
+      return res.status(403).json({ message: "Forbidden: You are not a provider" });
+    }
+    const recordedById = user.provider.id;
+
     // Basic validation
     if (!patientId || !category || !substance) {
       return res.status(400).json({ message: "Missing required fields" });
@@ -105,9 +112,15 @@ export const updateAllergy = async (req, res, next) => {
       return res.status(404).json({ message: "Allergy not found" });
     }
 
+    // Resolve provider ID
+    const user = await providerService.getProviderByUserId(req.user.id);
+    if (!user?.provider) {
+      return res.status(403).json({ message: "Forbidden: You are not a provider" });
+    }
+
     // Build update object
     const update = {
-      recordedById: req.user.id,
+      recordedById: user.provider.id,
     }
     if (category !== undefined) {
       if (!["FOOD", "MEDICATION", "ENVIRONMENTAL", "OTHER"].includes(category.toUpperCase())) {

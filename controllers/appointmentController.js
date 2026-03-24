@@ -102,7 +102,7 @@ export const getProviderAppointments = async (req, res, next) => {
     const { id } = req.params;
 
     // Handle query params
-    const { page, limit, status } = req.query;
+    const { page, limit, status, fromDate } = req.query;
 
     const providerId = Number(id);
     if (isNaN(providerId)) {
@@ -119,7 +119,7 @@ export const getProviderAppointments = async (req, res, next) => {
     const limitNum = Number(limit) || 10;
 
     // get appointments
-    const appointments = await appointmentService.getProviderAppointments(provider.id, pageNum, limitNum, status);
+    const appointments = await appointmentService.getProviderAppointments(provider.id, pageNum, limitNum, status, { fromDate });
     await logAudit({
       user: req.user,
       action: 'VIEW',
@@ -273,9 +273,12 @@ export const deleteAppointment = async (req, res, next) => {
 // Create visit note for an appointment
 export const createVisitNote = async (req, res, next) => {
   try {
-    // Only provider can create visit notes, so get it from logged in user
-    const providerId = req.user.id;
     const { id } = req.params;
+    const user = await providerService.getProviderByUserId(req.user.id);
+    if (!user?.provider) {
+      return res.status(403).json({ message: "Forbidden: You are not a provider" });
+    }
+    const providerId = user.provider.id;
     // Verify appointment exists
     const appointmentId = Number(id);
 
@@ -287,7 +290,6 @@ export const createVisitNote = async (req, res, next) => {
     if (!appointment) {
       return res.status(404).json({ message: "Appointment not found" });
     }
-
     if (appointment.providerId !== providerId) {
       return res.status(403).json({ message: "Forbidden: You are not the provider for this appointment" });
     }

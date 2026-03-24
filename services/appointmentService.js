@@ -5,7 +5,7 @@ export const createAppointment = async (data) => {
   return await prisma.appointment.create({ data });
 }
 
-export const getProviderAppointments = async (id, page, limit, status) => {
+export const getProviderAppointments = async (id, page, limit, status, { fromDate } = {}) => {
   const offset = (page - 1) * limit;
   const statusFilter = Array.isArray(status)
     ? status.map((s) => s.toUpperCase())
@@ -15,15 +15,26 @@ export const getProviderAppointments = async (id, page, limit, status) => {
   const whereClause = {
     providerId: id,
     ...(statusFilter && { status: { in: statusFilter } }),
+    ...(fromDate && { startTime: { gte: new Date(fromDate) } }),
   };
   const [appointment, totalCount] = await Promise.all([
     prisma.appointment.findMany({
       where: whereClause,
       skip: offset,
       take: limit,
-      orderBy: { startTime: "asc" },
+      orderBy: { startTime: statusFilter?.every(s => ['COMPLETED', 'CANCELLED'].includes(s)) ? "desc" : "asc" },
       include: {
-        patient: true,
+        patient: {
+          include: {
+            problems: true,
+            allergies: true,
+            medications: true,
+          },
+        },
+        visitNote: {
+          include: { versions: true },
+        },
+        vitals: true,
       }
     }),
     prisma.appointment.count({ where: whereClause }),

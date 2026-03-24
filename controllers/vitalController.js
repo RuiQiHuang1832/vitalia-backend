@@ -1,12 +1,19 @@
 import * as appointmentService from '../services/appointmentService.js';
 import * as vitalService from '../services/vitalService.js';
 import * as patientService from '../services/patientService.js';
+import * as providerService from '../services/providerService.js';
 import { logAudit } from "../services/auditLogService.js";
 
 export const createVital = async (req, res, next) => {
   try {
     const { appointmentId, heartRate, bloodPressureSystolic, bloodPressureDiastolic, temperature, weight, oxygenSaturation } = req.body;
-    const providerId = req.user.id;
+
+    const user = await providerService.getProviderByUserId(req.user.id);
+    if (!user?.provider) {
+      return res.status(403).json({ message: "Forbidden: You are not a provider" });
+    }
+    const providerId = user.provider.id;
+
     //Basic validation
     if (!appointmentId) {
       return res.status(400).json({ message: 'Missing required fields.' });

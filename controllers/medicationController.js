@@ -1,11 +1,18 @@
 import { logAudit } from "../services/auditLogService.js";
 import * as medicationService from "../services/medicationService.js";
 import * as patientService from "../services/patientService.js";
+import * as providerService from "../services/providerService.js";
 
 export const createMedication = async (req, res, next) => {
   try {
     const { patientId, name, dosage, frequency, startDate, notes } = req.body;
-    const prescribedById = req.user.id;
+
+    const user = await providerService.getProviderByUserId(req.user.id);
+    if (!user?.provider) {
+      return res.status(403).json({ message: "Forbidden: You are not a provider" });
+    }
+    const prescribedById = user.provider.id;
+
     // Basic validation
     if (!patientId || !name || !dosage || !frequency || !startDate) {
       return res.status(400).json({ message: "Missing required fields" });

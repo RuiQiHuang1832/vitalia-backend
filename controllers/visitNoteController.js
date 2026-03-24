@@ -1,11 +1,16 @@
 import * as visitNoteService from "../services/visitNoteService.js";
+import * as providerService from "../services/providerService.js";
 import { logAudit } from "../services/auditLogService.js";
 
 export const createVisitNoteEntry = async (req, res, next) => {
   try {
     const { visitNoteId } = req.params;
     const { content } = req.body || {};
-    const providerId = req.user.id;
+    const user = await providerService.getProviderByUserId(req.user.id);
+    if (!user?.provider) {
+      return res.status(403).json({ message: "Forbidden: You are not a provider" });
+    }
+    const providerId = user.provider.id;
 
     // Basic validation, there should be content.
     if (!content) {

@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "AuditEntity" ADD VALUE 'VISIT_NOTE_ENTRY';

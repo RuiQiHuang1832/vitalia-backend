@@ -1,4 +1,4 @@
-import { logAudit } from "../services/auditLogService.js";
+import { logAudit, patientLabel } from "../services/auditLogService.js";
 import * as patientService from "../services/patientService.js";
 import { parseDob } from "../utils/validateDate.js";
 import { validateEmail } from "../utils/validateEmail.js";
@@ -88,7 +88,10 @@ export const createPatient = async (req, res, next) => {
       action: 'CREATE',
       entity: 'PATIENT',
       entityId: result.patient.id,
-      details: { patient: result.patient }
+      details: {
+        description: `Created patient ${patientLabel(result.patient)}`,
+        patient: result.patient,
+      }
     });
     return res.status(201).json({
       id: result.patient.id,
@@ -264,6 +267,17 @@ export const updatePatient = async (req, res, next) => {
     }
     // Perform update
     const patient = await patientService.updatePatientAndUser(patientId, existing.userId, updates);
+    await logAudit({
+      user: req.user,
+      action: 'UPDATE',
+      entity: 'PATIENT',
+      entityId: patientId,
+      details: {
+        description: `Updated patient ${patientLabel(patient)}`,
+        previousData: existing,
+        updatedData: patient,
+      }
+    });
     res.status(200).json(patient);
   } catch (error) {
     next(error);
@@ -285,6 +299,16 @@ export const deletePatient = async (req, res, next) => {
     }
     // Delete patient
     await patientService.deletePatient(patientId);
+    await logAudit({
+      user: req.user,
+      action: 'DELETE',
+      entity: 'PATIENT',
+      entityId: patientId,
+      details: {
+        description: `Deleted patient ${patientLabel(existing)}`,
+        previousData: existing,
+      }
+    });
     res.status(200).json({ message: "Patient deleted successfully" });
   } catch (error) {
     next(error);

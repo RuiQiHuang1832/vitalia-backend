@@ -15,6 +15,7 @@ import problemRoutes from "./routes/problemRoutes.js";
 import providerAvailabilityRoutes from "./routes/providerAvailabilityRoutes.js";
 import providerRoutes from "./routes/providerRoutes.js";
 import visitNoteRoutes from "./routes/visitNoteRoutes.js";
+import auditLogRoutes from "./routes/auditLogRoutes.js";
 import vitalRoutes from "./routes/vitalRoutes.js";
 const app = express();
 
@@ -44,6 +45,7 @@ app.use("/allergies", requireAuth, requireRole("PROVIDER", "ADMIN"), allergyRout
 app.use("/medications", requireAuth, requireRole("PROVIDER", "ADMIN"), medicationRoutes);
 app.use("/vitals", requireAuth, vitalRoutes);
 app.use("/availability", requireAuth, requireRole("PROVIDER", "ADMIN"), providerAvailabilityRoutes);
+app.use("/audit-logs", requireAuth, requireRole("PROVIDER", "ADMIN"), auditLogRoutes);
 app.use(notFound);
 app.use(errorHandler);
 

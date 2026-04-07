@@ -1,4 +1,4 @@
-import { logAudit } from "../services/auditLogService.js";
+import { logAudit, patientLabel } from "../services/auditLogService.js";
 import * as medicationService from "../services/medicationService.js";
 import * as patientService from "../services/patientService.js";
 import * as providerService from "../services/providerService.js";
@@ -42,7 +42,10 @@ export const createMedication = async (req, res, next) => {
       action: 'CREATE',
       entity: 'MEDICATION',
       entityId: medication.id,
-      details: { medication }
+      details: {
+        description: `Prescribed "${medication.name}" ${medication.dosage} for ${patientLabel(patient)}`,
+        medication,
+      }
     });
     res.status(201).json(medication);
   } catch (error) {
@@ -66,15 +69,6 @@ export const getMedicationsForPatient = async (req, res, next) => {
     }
     // Fetch medications
     const medications = await medicationService.getMedicationsByPatientId(patientIdNum);
-    await logAudit({
-      user: req.user,
-      action: 'VIEW',
-      entity: 'PATIENT',
-      entityId: patientIdNum,
-      details: {
-        viewed: 'MEDICATION_LIST'
-      }
-    });
     res.status(200).json(medications);
   } catch (error) {
     next(error);
@@ -116,13 +110,18 @@ export const updateMedication = async (req, res, next) => {
     }
     // Perform update
     const updatedMedication = await medicationService.updateMedication(medicationId, update);
+    const patient = await patientService.getPatientById(medication.patientId);
 
     await logAudit({
       user: req.user,
       action: 'UPDATE',
       entity: 'MEDICATION',
       entityId: medicationId,
-      details: { previousData: medication, updatedData: updatedMedication }
+      details: {
+        description: `Updated medication "${updatedMedication.name}" for ${patientLabel(patient)}`,
+        previousData: medication,
+        updatedData: updatedMedication,
+      }
     });
 
     res.status(200).json(updatedMedication);

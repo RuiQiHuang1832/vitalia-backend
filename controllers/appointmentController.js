@@ -1,5 +1,5 @@
 import * as appointmentService from "../services/appointmentService.js";
-import { logAudit } from "../services/auditLogService.js";
+import { logAudit, patientLabel } from "../services/auditLogService.js";
 import * as patientService from "../services/patientService.js";
 import * as providerAvailabilityService from "../services/providerAvailabilityService.js";
 import * as providerService from "../services/providerService.js";
@@ -85,7 +85,10 @@ export const createAppointment = async (req, res, next) => {
       action: 'CREATE',
       entity: 'APPOINTMENT',
       entityId: appointment.id,
-      details: { appointment }
+      details: {
+        description: `Scheduled appointment for ${patientLabel(patient)}`,
+        appointment,
+      }
     });
 
     res.status(201).json(appointment);
@@ -120,15 +123,6 @@ export const getProviderAppointments = async (req, res, next) => {
 
     // get appointments
     const appointments = await appointmentService.getProviderAppointments(provider.id, pageNum, limitNum, status, { fromDate });
-    await logAudit({
-      user: req.user,
-      action: 'VIEW',
-      entity: 'PROVIDER',
-      entityId: providerId,
-      details: {
-        viewed: 'APPOINTMENT_LIST'
-      }
-    });
     return res.status(200).json(appointments);
 
   } catch (error) {
@@ -227,12 +221,18 @@ export const updateAppointment = async (req, res, next) => {
     if (status !== undefined) updates.status = status;
 
     const appointment = await appointmentService.updateAppointment(appointmentId, updates);
+    const existingPatient = await patientService.getPatientById(existing.patientId);
+
     await logAudit({
       user: req.user,
       action: 'UPDATE',
       entity: 'APPOINTMENT',
       entityId: appointmentId,
-      details: { previousData: existing, updatedData: appointment }
+      details: {
+        description: `Updated appointment for ${patientLabel(existingPatient)}`,
+        previousData: existing,
+        updatedData: appointment,
+      }
     });
     res.status(200).json(appointment);
   } catch (error) {
@@ -257,12 +257,17 @@ export const deleteAppointment = async (req, res, next) => {
     }
 
     await appointmentService.deleteAppointment(appointmentId);
+    const deletedPatient = await patientService.getPatientById(appointment.patientId);
+
     await logAudit({
       user: req.user,
       action: 'DELETE',
       entity: 'APPOINTMENT',
       entityId: appointmentId,
-      details: { previousData: appointment }
+      details: {
+        description: `Cancelled appointment for ${patientLabel(deletedPatient)}`,
+        previousData: appointment,
+      }
     });
     res.status(200).json({ message: "Appointment deleted" });
   } catch (error) {
@@ -304,7 +309,10 @@ export const createVisitNote = async (req, res, next) => {
       action: 'CREATE',
       entity: 'VISIT_NOTE',
       entityId: visitNote.id,
-      details: { visitNote }
+      details: {
+        description: `Created visit note for appointment #${appointmentId}`,
+        visitNote,
+      }
     });
     res.status(201).json(visitNote);
 
@@ -339,15 +347,6 @@ export const getLatestVisitNoteEntry = async (req, res, next) => {
     if (!entry) {
       return res.status(404).json({ message: "Visit note ENTRY not found" });
     }
-    await logAudit({
-      user: req.user,
-      action: 'VIEW',
-      entity: 'VISIT_NOTE',
-      entityId: visitNote.id,
-      details: {
-        viewed: 'LATEST_VISIT_NOTE_ENTRY'
-      }
-    });
     res.status(200).json(entry);
 
   } catch (error) {

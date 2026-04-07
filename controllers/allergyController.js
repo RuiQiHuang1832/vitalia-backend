@@ -1,7 +1,7 @@
 import * as allergyService from "../services/allergyService.js";
 import * as patientService from "../services/patientService.js";
 import * as providerService from "../services/providerService.js";
-import { logAudit } from "../services/auditLogService.js";
+import { logAudit, patientLabel } from "../services/auditLogService.js";
 
 export const createAllergy = async (req, res, next) => {
   try {
@@ -51,7 +51,10 @@ export const createAllergy = async (req, res, next) => {
       action: 'CREATE',
       entity: 'ALLERGY',
       entityId: allergy.id,
-      details: { allergy }
+      details: {
+        description: `Added allergy "${allergy.substance}" (${allergy.category}) for ${patientLabel(patient)}`,
+        allergy,
+      }
     });
     res.status(201).json(allergy);
 
@@ -79,15 +82,6 @@ export const getAllergies = async (req, res, next) => {
     if (!allergies || Object.keys(allergies).length === 0) {
       return res.status(404).json({ message: "No allergies found for this patient" });
     }
-    await logAudit({
-      user: req.user,
-      action: 'VIEW',
-      entity: 'PATIENT',
-      entityId: patientIdNum,
-      details: {
-        viewed: 'ALLERGY_LIST'
-      }
-    });
     res.status(200).json(allergies);
   } catch (error) {
     next(error);
@@ -139,13 +133,18 @@ export const updateAllergy = async (req, res, next) => {
     if (notes !== undefined) update.notes = notes;
 
     const updatedAllergy = await allergyService.updateAllergy(allergyId, update);
+    const patient = await patientService.getPatientById(allergy.patientId);
 
     await logAudit({
       user: req.user,
       action: 'UPDATE',
       entity: 'ALLERGY',
       entityId: allergyId,
-      details: { previousData: allergy, updatedData: updatedAllergy }
+      details: {
+        description: `Updated allergy "${updatedAllergy.substance}" for ${patientLabel(patient)}`,
+        previousData: allergy,
+        updatedData: updatedAllergy,
+      }
     });
     res.status(200).json(updatedAllergy);
 
@@ -168,12 +167,17 @@ export const deleteAllergy = async (req, res, next) => {
       return res.status(404).json({ message: "Allergy not found" });
     }
     await allergyService.deleteAllergy(allergyId);
+    const patient = await patientService.getPatientById(allergy.patientId);
+
     await logAudit({
       user: req.user,
       action: 'DELETE',
       entity: 'ALLERGY',
       entityId: allergyId,
-      details: { previousData: allergy }
+      details: {
+        description: `Deleted allergy "${allergy.substance}" for ${patientLabel(patient)}`,
+        previousData: allergy,
+      }
     });
     res.status(200).json({ message: "Allergy successfully deleted" });
   } catch (error) {

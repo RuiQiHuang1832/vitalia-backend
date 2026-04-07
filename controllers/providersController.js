@@ -56,7 +56,10 @@ export const createProvider = async (req, res, next) => {
       action: 'CREATE',
       entity: 'PROVIDER',
       entityId: result.provider.id,
-      details: { provider: result.provider }
+      details: {
+        description: `Created provider ${result.provider.firstName} ${result.provider.lastName} (${result.provider.specialty})`,
+        provider: result.provider,
+      }
     });
     return res.status(201).json({
       id: result.provider.id,
@@ -184,6 +187,17 @@ export const updateProvider = async (req, res, next) => {
 
     // Perform update
     const provider = await providerService.updateProviderAndUser(providerId, existing.userId, updates);
+    await logAudit({
+      user: req.user,
+      action: 'UPDATE',
+      entity: 'PROVIDER',
+      entityId: providerId,
+      details: {
+        description: `Updated provider ${provider.firstName} ${provider.lastName}`,
+        previousData: existing,
+        updatedData: provider,
+      }
+    });
     res.status(200).json(provider);
   } catch (error) {
     next(error);
@@ -205,6 +219,16 @@ export const deleteProvider = async (req, res, next) => {
     }
     // Delete provider
     await providerService.deleteProvider(providerId);
+    await logAudit({
+      user: req.user,
+      action: 'DELETE',
+      entity: 'PROVIDER',
+      entityId: providerId,
+      details: {
+        description: `Deleted provider ${existing.firstName} ${existing.lastName}`,
+        previousData: existing,
+      }
+    });
     res.status(200).json({ message: "Provider deleted successfully" });
   } catch (error) {
     next(error);

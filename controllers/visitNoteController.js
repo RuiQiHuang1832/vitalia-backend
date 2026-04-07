@@ -40,7 +40,10 @@ export const createVisitNoteEntry = async (req, res, next) => {
       action: 'CREATE',
       entity: 'VISIT_NOTE_ENTRY',
       entityId: newEntry.id,
-      details: { newEntry }
+      details: {
+        description: `Added entry to visit note #${visitNoteIdNumber}`,
+        newEntry,
+      }
     });
     res.status(201).json(newEntry);
   } catch (error) {
@@ -64,15 +67,6 @@ export const getAllVisitNoteEntries = async (req, res, next) => {
     }
 
     const entries = await visitNoteService.getAllVisitNoteEntries(visitNoteIdNumber);
-    await logAudit({
-      user: req.user,
-      action: 'VIEW',
-      entity: 'VISIT_NOTE',
-      entityId: visitNoteIdNumber,
-      details: {
-        viewed: 'VISIT_NOTE_ENTRY_LIST'
-      }
-    });
     res.status(200).json(entries);
   }
   catch (error) {

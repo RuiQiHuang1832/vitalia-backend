@@ -1,7 +1,7 @@
 import * as patientService from "../services/patientService.js";
 import * as problemService from "../services/problemService.js";
 import * as providerService from "../services/providerService.js";
-import { logAudit } from "../services/auditLogService.js";
+import { logAudit, patientLabel } from "../services/auditLogService.js";
 
 export const createProblem = async (req, res, next) => {
   try {
@@ -41,7 +41,10 @@ export const createProblem = async (req, res, next) => {
       action: 'CREATE',
       entity: 'PROBLEM',
       entityId: problem.id,
-      details: { problem }
+      details: {
+        description: `Added problem "${problem.name}" for ${patientLabel(patient)}`,
+        problem,
+      }
     });
     res.status(201).json(problem);
   } catch (error) {
@@ -64,15 +67,6 @@ export const getProblemsForPatient = async (req, res, next) => {
     }
     // Fetch problems
     const problems = await problemService.getProblemsByPatientId(patientIdNum);
-    await logAudit({
-      user: req.user,
-      action: 'VIEW',
-      entity: 'PATIENT',
-      entityId: patientIdNum,
-      details: {
-        viewed: 'PROBLEM_LIST'
-      }
-    });
     res.status(200).json(problems);
 
   } catch (error) {
@@ -92,15 +86,6 @@ export const getProblemById = async (req, res, next) => {
     if (!problem) {
       return res.status(404).json({ message: "No problem found" });
     }
-    await logAudit({
-      user: req.user,
-      action: 'VIEW',
-      entity: 'PROBLEM',
-      entityId: problemId,
-      details: {
-        viewed: 'PROBLEM_DETAIL'
-      }
-    });
     res.status(200).json(problem);
   } catch (error) {
     next(error);
@@ -134,12 +119,18 @@ export const updateProblem = async (req, res, next) => {
 
 
     const updatedProblem = await problemService.updateProblem(problemId, update);
+    const patient = await patientService.getPatientById(problem.patientId);
+
     await logAudit({
       user: req.user,
       action: 'UPDATE',
       entity: 'PROBLEM',
       entityId: problemId,
-      details: { previousData: problem, updatedData: updatedProblem }
+      details: {
+        description: `Updated problem "${updatedProblem.name}" for ${patientLabel(patient)}`,
+        previousData: problem,
+        updatedData: updatedProblem,
+      }
     });
     res.status(200).json(updatedProblem);
   } catch (error) {

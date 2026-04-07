@@ -22,9 +22,13 @@ function timeToMinutes(str) {
 export const createProviderAvailability = async (req, res, next) => {
   try {
     const { startTime, endTime, workingDays } = req.body;
-    const providerId = req.user.id;
 
-    // Basic validation
+    const user = await providerService.getProviderByUserId(req.user.id);
+    if (!user?.provider) {
+      return res.status(403).json({ message: "Forbidden: You are not a provider" });
+    }
+    const providerId = user.provider.id;
+
     if (!startTime || !endTime || !workingDays || !Array.isArray(workingDays) || workingDays.length === 0) {
       return res.status(400).json({ message: "Missing or invalid required fields" });
     }
@@ -33,19 +37,13 @@ export const createProviderAvailability = async (req, res, next) => {
       return res.status(400).json({ message: "startTime and endTime must be in HH:mm format" });
     }
 
-    const provider = await providerService.getProviderById(providerId);
-    if (!provider) {
-      return res.status(404).json({ message: "Provider not found" });
+    if (timeToMinutes(startTime) >= timeToMinutes(endTime)) {
+      return res.status(400).json({ message: "startTime must be before endTime" });
     }
-    //Check if availability already exists for provider
+
     const existingAvailability = await providerAvailabilityService.getProviderAvailabilityByProviderId(providerId);
     if (existingAvailability) {
       return res.status(409).json({ message: "Availability already exists for this provider" });
-    }
-
-    //Check startTime < endTime
-    if (timeToMinutes(startTime) >= timeToMinutes(endTime)) {
-      return res.status(400).json({ message: "startTime must be before endTime" });
     }
 
     const availability = await providerAvailabilityService.createProviderAvailability({
@@ -59,7 +57,10 @@ export const createProviderAvailability = async (req, res, next) => {
       action: 'CREATE',
       entity: 'PROVIDER_AVAILABILITY',
       entityId: availability.id,
-      details: { availability }
+      details: {
+        description: `Set availability: ${availability.workingDays.join(', ')} ${availability.startTime}–${availability.endTime}`,
+        availability,
+      }
     });
     res.status(201).json(availability);
 
@@ -83,15 +84,6 @@ export const getProviderAvailability = async (req, res, next) => {
       return res.status(403).json({ message: "You do not have permission to view this availability" });
     }
 
-    await logAudit({
-      user: req.user,
-      action: 'VIEW',
-      entity: 'PROVIDER_AVAILABILITY',
-      entityId: availability.id,
-      details: {
-        viewed: 'PROVIDER_AVAILABILITY'
-      }
-    });
     res.json(availability);
   } catch (error) {
     next(error);
@@ -151,7 +143,11 @@ export const updateProviderAvailability = async (req, res, next) => {
       action: 'UPDATE',
       entity: 'PROVIDER_AVAILABILITY',
       entityId: updatedAvailability.id,
-      details: { updatedAvailability }
+      details: {
+        description: `Updated availability: ${updatedAvailability.workingDays.join(', ')} ${updatedAvailability.startTime}–${updatedAvailability.endTime}`,
+        previousData: availability,
+        updatedData: updatedAvailability,
+      }
     });
     res.json(updatedAvailability);
   } catch (error) {

@@ -2,7 +2,7 @@ import * as appointmentService from '../services/appointmentService.js';
 import * as vitalService from '../services/vitalService.js';
 import * as patientService from '../services/patientService.js';
 import * as providerService from '../services/providerService.js';
-import { logAudit } from "../services/auditLogService.js";
+import { logAudit, patientLabel } from "../services/auditLogService.js";
 
 export const createVital = async (req, res, next) => {
   try {
@@ -28,6 +28,7 @@ export const createVital = async (req, res, next) => {
       return res.status(404).json({ message: 'Appointment not found.' });
     }
     const patientIdNum = appointment.patientId;
+    const patient = await patientService.getPatientById(patientIdNum);
     // Create vital record
     const vital = await vitalService.createVital({
       appointmentId: appointmentIdNum,
@@ -45,7 +46,10 @@ export const createVital = async (req, res, next) => {
       action: 'CREATE',
       entity: 'VITAL',
       entityId: vital.id,
-      details: { vital }
+      details: {
+        description: `Recorded vitals for ${patientLabel(patient)} (appointment #${appointmentIdNum})`,
+        vital,
+      }
     });
     res.status(201).json(vital);
   } catch (error) {
@@ -67,15 +71,6 @@ export const getVitalsForAppointment = async (req, res, next) => {
     }
     // Fetch vitals for appointment
     const vitals = await vitalService.getVitalsByAppointmentId(appointmentIdNum);
-    await logAudit({
-      user: req.user,
-      action: 'VIEW',
-      entity: 'APPOINTMENT',
-      entityId: appointmentIdNum,
-      details: {
-        viewed: 'VITAL_LIST'
-      }
-    });
     res.status(200).json(vitals);
   } catch (error) {
     next(error);
@@ -99,15 +94,6 @@ export const getVitalsForPatient = async (req, res, next) => {
       return res.status(404).json({ message: 'Patient not found.' });
     }
     const vitals = await vitalService.getVitalsByPatientId(patientIdNum);
-    await logAudit({
-      user: req.user,
-      action: 'VIEW',
-      entity: 'PATIENT',
-      entityId: patientIdNum,
-      details: {
-        viewed: 'VITAL_LIST'
-      }
-    });
     res.status(200).json(vitals);
   } catch (error) {
     next(error);
@@ -141,12 +127,18 @@ export const updateVital = async (req, res, next) => {
     }
 
     const updatedVital = await vitalService.updateVital(vitalIdNum, update);
+    const patient = await patientService.getPatientById(vital.patientId);
+
     await logAudit({
       user: req.user,
       action: 'UPDATE',
       entity: 'VITAL',
       entityId: vitalIdNum,
-      details: { previousData: vital, updatedData: updatedVital }
+      details: {
+        description: `Updated vitals for ${patientLabel(patient)}`,
+        previousData: vital,
+        updatedData: updatedVital,
+      }
     });
     res.status(200).json(updatedVital);
   } catch (error) {
@@ -168,12 +160,17 @@ export const deleteVital = async (req, res, next) => {
     }
     // Delete vital record
     await vitalService.deleteVital(vitalIdNum);
+    const patient = await patientService.getPatientById(vital.patientId);
+
     await logAudit({
       user: req.user,
       action: 'DELETE',
       entity: 'VITAL',
       entityId: vitalIdNum,
-      details: { previousData: vital }
+      details: {
+        description: `Deleted vitals for ${patientLabel(patient)}`,
+        previousData: vital,
+      }
     });
     res.status(200).json({message: 'Vital record deleted.'});
   } catch (error) {

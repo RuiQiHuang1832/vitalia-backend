@@ -7,7 +7,7 @@ router.get('/:id', requireRole("ADMIN", "PROVIDER", "PATIENT"), getProvider);
 router.get('/user/:id', requireRole("ADMIN", "PROVIDER", "PATIENT"), getProviderByUserId);
 router.get("/", requireRole("ADMIN", "PROVIDER", "PATIENT"), getAllProviders);
 router.post('/', requireRole("ADMIN"), createProvider);
-router.put('/:id', requireRole("ADMIN"), updateProvider);
+router.put('/:id', requireRole("ADMIN", "PROVIDER"), updateProvider);
 router.delete('/:id', requireRole("ADMIN"), deleteProvider);
 
 export default router;

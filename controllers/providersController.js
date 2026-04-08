@@ -158,6 +158,11 @@ export const updateProvider = async (req, res, next) => {
       return res.status(404).json({ message: "Provider not found" });
     }
 
+    // Providers can only update their own profile
+    if (req.user.role === "PROVIDER" && req.user.providerId !== providerId) {
+      return res.status(403).json({ message: "Forbidden: You can only update your own profile" });
+    }
+
     const { firstName, lastName, specialty, email, phone } = req.body;
 
     // Prepare updates object

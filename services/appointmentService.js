@@ -5,17 +5,24 @@ export const createAppointment = async (data) => {
   return await prisma.appointment.create({ data });
 }
 
-export const getProviderAppointments = async (id, page, limit, status, { fromDate } = {}) => {
+export const getProviderAppointments = async (id, page, limit, status, { fromDate, endTimeAfter, endTimeBefore } = {}) => {
   const offset = (page - 1) * limit;
   const statusFilter = Array.isArray(status)
     ? status.map((s) => s.toUpperCase())
     : status
       ? [status.toUpperCase()]
       : undefined;
+
+  const endTimeFilter = {
+    ...(endTimeAfter && { gte: new Date(endTimeAfter) }),
+    ...(endTimeBefore && { lt: new Date(endTimeBefore) }),
+  };
+
   const whereClause = {
     providerId: id,
     ...(statusFilter && { status: { in: statusFilter } }),
     ...(fromDate && { startTime: { gte: new Date(fromDate) } }),
+    ...(Object.keys(endTimeFilter).length > 0 && { endTime: endTimeFilter }),
   };
   const [appointment, totalCount] = await Promise.all([
     prisma.appointment.findMany({
@@ -47,6 +54,28 @@ export const getProviderAppointments = async (id, page, limit, status, { fromDat
     limit,
     totalPages: Math.ceil(totalCount / limit),
   };
+}
+
+export const countProviderAppointments = async (id, status, { fromDate, endTimeAfter, endTimeBefore } = {}) => {
+  const statusFilter = Array.isArray(status)
+    ? status.map((s) => s.toUpperCase())
+    : status
+      ? [status.toUpperCase()]
+      : undefined;
+
+  const endTimeFilter = {
+    ...(endTimeAfter && { gte: new Date(endTimeAfter) }),
+    ...(endTimeBefore && { lt: new Date(endTimeBefore) }),
+  };
+
+  return await prisma.appointment.count({
+    where: {
+      providerId: id,
+      ...(statusFilter && { status: { in: statusFilter } }),
+      ...(fromDate && { startTime: { gte: new Date(fromDate) } }),
+      ...(Object.keys(endTimeFilter).length > 0 && { endTime: endTimeFilter }),
+    },
+  });
 }
 
 export const updateAppointment = async (id, data) => {

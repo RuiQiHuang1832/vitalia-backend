@@ -105,7 +105,7 @@ export const getProviderAppointments = async (req, res, next) => {
     const { id } = req.params;
 
     // Handle query params
-    const { page, limit, status, fromDate } = req.query;
+    const { page, limit, status, fromDate, endTimeAfter, endTimeBefore } = req.query;
 
     const providerId = Number(id);
     if (isNaN(providerId)) {
@@ -122,9 +122,32 @@ export const getProviderAppointments = async (req, res, next) => {
     const limitNum = Number(limit) || 10;
 
     // get appointments
-    const appointments = await appointmentService.getProviderAppointments(provider.id, pageNum, limitNum, status, { fromDate });
+    const appointments = await appointmentService.getProviderAppointments(provider.id, pageNum, limitNum, status, { fromDate, endTimeAfter, endTimeBefore });
     return res.status(200).json(appointments);
 
+  } catch (error) {
+    next(error);
+  }
+}
+
+// Get count of appointments matching filters (cheap — no findMany)
+export const countProviderAppointments = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { status, fromDate, endTimeAfter, endTimeBefore } = req.query;
+
+    const providerId = Number(id);
+    if (isNaN(providerId)) {
+      return res.status(400).json({ message: "Invalid provider ID" });
+    }
+
+    const provider = await providerService.getProviderById(providerId);
+    if (!provider) {
+      return res.status(404).json({ message: "Provider not found" });
+    }
+
+    const count = await appointmentService.countProviderAppointments(provider.id, status, { fromDate, endTimeAfter, endTimeBefore });
+    return res.status(200).json({ count });
   } catch (error) {
     next(error);
   }

@@ -57,10 +57,14 @@ export const createMedication = async (req, res, next) => {
 
 export const getMedicationsForPatient = async (req, res, next) => {
   try {
-    const { id } = req.params;
-    const patientIdNum = Number(id);
+    const rawId = req.params.patientId ?? req.params.id;
+    const patientIdNum = Number(rawId);
     if (isNaN(patientIdNum)) {
       return res.status(400).json({ message: "patientId is required and must be a number" });
+    }
+    // Ensure the authenticated patient can only view their own medications
+    if (req.user?.patientId && req.user.patientId !== patientIdNum) {
+      return res.status(403).json({ message: "Forbidden: cannot access another patient's medications" });
     }
     // Verify patient exists
     const patient = await patientService.getPatientById(patientIdNum);

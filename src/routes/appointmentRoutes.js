@@ -1,11 +1,12 @@
 import { Router } from "express";
-import { countProviderAppointments, createAppointment, createVisitNote, deleteAppointment, getLatestVisitNoteEntry, getProviderAppointments, updateAppointment } from "../../controllers/appointmentController.js";
+import { countProviderAppointments, createAppointment, createVisitNote, deleteAppointment, getLatestVisitNoteEntry, getPatientAppointments, getProviderAppointments, updateAppointment } from "../../controllers/appointmentController.js";
 import { requireRole } from "../../middleware/requireRole.js";
 const router = Router();
 
 // Appointment routes
 router.get('/provider/:id', requireRole("PROVIDER"), getProviderAppointments);
 router.get('/provider/:id/count', requireRole("PROVIDER"), countProviderAppointments);
+router.get('/patient/:id', requireRole("PATIENT"), getPatientAppointments);
 router.post('/', requireRole("PROVIDER"), createAppointment);
 router.put('/:id', requireRole("PROVIDER"), updateAppointment);
 router.delete('/:id', requireRole("PROVIDER"), deleteAppointment);

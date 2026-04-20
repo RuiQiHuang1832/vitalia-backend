@@ -56,6 +56,53 @@ export const getProviderAppointments = async (id, page, limit, status, { fromDat
   };
 }
 
+export const getPatientAppointments = async (id, page, limit, status) => {
+  const offset = (page - 1) * limit;
+  const statusFilter = Array.isArray(status)
+    ? status.map((s) => s.toUpperCase())
+    : status
+      ? [status.toUpperCase()]
+      : undefined;
+
+  const isPast = statusFilter?.every(s => ['COMPLETED', 'CANCELLED'].includes(s));
+
+  const whereClause = {
+    patientId: id,
+    ...(statusFilter && { status: { in: statusFilter } }),
+  };
+
+  const [appointment, totalCount] = await Promise.all([
+    prisma.appointment.findMany({
+      where: whereClause,
+      skip: offset,
+      take: limit,
+      orderBy: { startTime: isPast ? "desc" : "asc" },
+      include: {
+        provider: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            specialty: true,
+          },
+        },
+        visitNote: {
+          include: { versions: true },
+        },
+      }
+    }),
+    prisma.appointment.count({ where: whereClause }),
+  ]);
+
+  return {
+    data: appointment,
+    totalCount,
+    page,
+    limit,
+    totalPages: Math.ceil(totalCount / limit),
+  };
+}
+
 export const countProviderAppointments = async (id, status, { fromDate, endTimeAfter, endTimeBefore } = {}) => {
   const statusFilter = Array.isArray(status)
     ? status.map((s) => s.toUpperCase())

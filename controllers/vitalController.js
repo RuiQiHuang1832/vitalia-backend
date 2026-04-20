@@ -1,8 +1,8 @@
 import * as appointmentService from '../services/appointmentService.js';
-import * as vitalService from '../services/vitalService.js';
+import { logAudit, patientLabel } from "../services/auditLogService.js";
 import * as patientService from '../services/patientService.js';
 import * as providerService from '../services/providerService.js';
-import { logAudit, patientLabel } from "../services/auditLogService.js";
+import * as vitalService from '../services/vitalService.js';
 
 export const createVital = async (req, res, next) => {
   try {
@@ -84,9 +84,9 @@ export const getVitalsForPatient = async (req, res, next) => {
     if (isNaN(patientIdNum)) {
       return res.status(400).json({ message: 'Invalid patientId.' });
     }
-    //Check access rights
-    if (req.user.role === 'PATIENT' && req.user.id !== patientIdNum) {
-      return res.status(403).json({ message: 'Access denied.' });
+    // Ensure the authenticated patient can only view their own vitals
+    if (req.user?.patientId && req.user.patientId !== patientIdNum) {
+      return res.status(403).json({ message: "Forbidden: cannot access another patient's vitals" });
     }
     // Check if patient exist
     const patient = await patientService.getPatientById(patientIdNum);
@@ -172,7 +172,7 @@ export const deleteVital = async (req, res, next) => {
         previousData: vital,
       }
     });
-    res.status(200).json({message: 'Vital record deleted.'});
+    res.status(200).json({ message: 'Vital record deleted.' });
   } catch (error) {
     next(error);
   }

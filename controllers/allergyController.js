@@ -67,10 +67,14 @@ export const createAllergy = async (req, res, next) => {
 
 export const getAllergies = async (req, res, next) => {
   try {
-    const { id } = req.params;
-    const patientIdNum = Number(id);
+    const rawId = req.params.patientId ?? req.params.id;
+    const patientIdNum = Number(rawId);
     if (isNaN(patientIdNum)) {
       return res.status(400).json({ message: "patientId is required and must be a number" });
+    }
+    // Ensure the authenticated patient can only view their own allergies
+    if (req.user?.patientId && req.user.patientId !== patientIdNum) {
+      return res.status(403).json({ message: "Forbidden: cannot access another patient's allergies" });
     }
     // Verify patient exists
     const patient = await patientService.getPatientById(patientIdNum);
@@ -79,10 +83,7 @@ export const getAllergies = async (req, res, next) => {
     }
     // Fetch allergies
     const allergies = await allergyService.getAllergiesByPatientId(patientIdNum);
-    if (!allergies || Object.keys(allergies).length === 0) {
-      return res.status(404).json({ message: "No allergies found for this patient" });
-    }
-    res.status(200).json(allergies);
+    res.status(200).json(allergies ?? {});
   } catch (error) {
     next(error);
   }

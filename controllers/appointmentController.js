@@ -130,6 +130,38 @@ export const getProviderAppointments = async (req, res, next) => {
   }
 }
 
+// Get appointments for a patient with pagination and optional status filter
+export const getPatientAppointments = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { page, limit, status } = req.query;
+
+    const patientId = Number(id);
+    if (isNaN(patientId)) {
+      return res.status(400).json({ message: "Invalid patient ID" });
+    }
+
+    // Verify patient exists
+    const patient = await patientService.getPatientById(patientId);
+    if (!patient) {
+      return res.status(404).json({ message: "Patient not found" });
+    }
+
+    // Ensure the authenticated patient can only view their own appointments
+    if (req.user?.patientId && req.user.patientId !== patientId) {
+      return res.status(403).json({ message: "Forbidden: cannot access another patient's appointments" });
+    }
+
+    const pageNum = Number(page) || 1;
+    const limitNum = Number(limit) || 10;
+
+    const appointments = await appointmentService.getPatientAppointments(patient.id, pageNum, limitNum, status);
+    return res.status(200).json(appointments);
+  } catch (error) {
+    next(error);
+  }
+}
+
 // Get count of appointments matching filters (cheap — no findMany)
 export const countProviderAppointments = async (req, res, next) => {
   try {

@@ -2,19 +2,13 @@ import * as auditLogService from "../services/auditLogService.js";
 
 export const getAuditLogs = async (req, res, next) => {
   try {
-    const { page, limit, action, entity, userId, userRole, from, to } = req.query;
+    const { page, limit, action, entity, userRole, from, to } = req.query;
 
     const pageNum = Math.max(Number(page) || 1, 1);
     const limitNum = Math.min(Math.max(Number(limit) || 20, 1), 100);
 
-    // Validate userId
-    let userIdNum;
-    if (userId) {
-      userIdNum = Number(userId);
-      if (isNaN(userIdNum)) {
-        return res.status(400).json({ message: "Invalid userId" });
-      }
-    }
+    // Providers are scoped to their own actions; admins see everything.
+    const userIdFilter = req.user.role === "PROVIDER" ? req.user.id : undefined;
 
     // Validate dates
     let fromDate, toDate;
@@ -34,7 +28,7 @@ export const getAuditLogs = async (req, res, next) => {
     const result = await auditLogService.getAuditLogs(pageNum, limitNum, {
       action,
       entity,
-      userId: userIdNum,
+      userId: userIdFilter,
       userRole,
       from: fromDate,
       to: toDate,

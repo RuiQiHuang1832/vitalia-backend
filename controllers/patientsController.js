@@ -229,6 +229,18 @@ export const updatePatient = async (req, res, next) => {
       return res.status(404).json({ message: "Patient not found" });
     }
 
+    const isPatient = req.user?.role === "PATIENT";
+    if (isPatient) {
+      if (req.user.patientId !== patientId) {
+        return res.status(403).json({ message: "Patients can only update their own record" });
+      }
+      const allowed = ["email", "phone"];
+      const disallowed = Object.keys(req.body).filter((k) => !allowed.includes(k));
+      if (disallowed.length > 0) {
+        return res.status(403).json({ message: `Patients may only update: ${allowed.join(", ")}` });
+      }
+    }
+
     const { firstName, lastName, dob, email, phone, status } = req.body;
 
     // Prepare updates object

@@ -83,6 +83,11 @@ enum PatientStatus {
   DISCHARGED
 }
 
+enum ProviderStatus {
+  ACTIVE
+  INACTIVE
+}
+
 // ---------- USERS & AUTH ----------
 
 model User {
@@ -129,13 +134,14 @@ model Provider {
   userId Int? @unique
   // Relations, not stored in DB directly
 
-  user      User?    @relation(fields: [userId], references: [id])
+  user      User?          @relation(fields: [userId], references: [id])
   firstName String
   lastName  String
   specialty String
   phone     String
-  email     String   @unique
-  createdAt DateTime @default(now())
+  email     String         @unique
+  createdAt DateTime       @default(now())
+  status    ProviderStatus @default(ACTIVE)
 
   appointments         Appointment[]
   visitNotes           VisitNote[]

@@ -16,6 +16,7 @@ import providerAvailabilityRoutes from "./routes/providerAvailabilityRoutes.js";
 import providerRoutes from "./routes/providerRoutes.js";
 import visitNoteRoutes from "./routes/visitNoteRoutes.js";
 import auditLogRoutes from "./routes/auditLogRoutes.js";
+import userRoutes from "./routes/userRoutes.js";
 import vitalRoutes from "./routes/vitalRoutes.js";
 const app = express();
 
@@ -46,6 +47,7 @@ app.use("/medications", requireAuth, medicationRoutes);
 app.use("/vitals", requireAuth, vitalRoutes);
 app.use("/availability", requireAuth, requireRole("PROVIDER", "ADMIN"), providerAvailabilityRoutes);
 app.use("/audit-logs", requireAuth, requireRole("PROVIDER", "ADMIN"), auditLogRoutes);
+app.use("/users", requireAuth, requireRole("ADMIN"), userRoutes);
 app.use(notFound);
 app.use(errorHandler);
 

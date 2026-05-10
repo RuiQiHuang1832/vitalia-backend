@@ -9,6 +9,7 @@ import { requireRole } from "../middleware/requireRole.js";
 import allergyRoutes from "./routes/allergyRoutes.js";
 import appointmentRoutes from "./routes/appointmentRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
+import conversationRoutes from "./routes/conversationRoutes.js";
 import medicationRoutes from "./routes/medicationRoutes.js";
 import patientRoutes from "./routes/patientRoutes.js";
 import problemRoutes from "./routes/problemRoutes.js";
@@ -48,6 +49,7 @@ app.use("/vitals", requireAuth, vitalRoutes);
 app.use("/availability", requireAuth, requireRole("PROVIDER", "ADMIN"), providerAvailabilityRoutes);
 app.use("/audit-logs", requireAuth, requireRole("PROVIDER", "ADMIN"), auditLogRoutes);
 app.use("/users", requireAuth, requireRole("ADMIN"), userRoutes);
+app.use("/conversations", requireAuth, requireRole("PATIENT", "PROVIDER"), conversationRoutes);
 app.use(notFound);
 app.use(errorHandler);
 

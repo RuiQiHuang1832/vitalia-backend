@@ -69,6 +69,7 @@ enum AuditEntity {
   MEDICATION
   VITAL
   PROVIDER_AVAILABILITY
+  CONVERSATION
 }
 
 enum Gender {
@@ -102,6 +103,8 @@ model User {
   patient          Patient?
   provider         Provider?
   auditLogs        AuditLog[]
+  conversations    ConversationParticipant[]
+  sentMessages     Message[]
 }
 
 // ---------- PATIENTS ----------
@@ -325,4 +328,40 @@ model ProviderAvailability {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// ---------- MESSAGING ----------
+
+model Conversation {
+  id            Int      @id @default(autoincrement())
+  createdAt     DateTime @default(now())
+  lastMessageAt DateTime @default(now())
+
+  participants ConversationParticipant[]
+  messages     Message[]
+}
+
+model ConversationParticipant {
+  conversationId Int
+  userId         Int
+  lastReadAt     DateTime?
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id])
+
+  @@id([conversationId, userId])
+  @@index([userId])
+}
+
+model Message {
+  id             Int      @id @default(autoincrement())
+  conversationId Int
+  senderId       Int
+  body           String
+  createdAt      DateTime @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User         @relation(fields: [senderId], references: [id])
+
+  @@index([conversationId, createdAt(sort: Desc)])
 }

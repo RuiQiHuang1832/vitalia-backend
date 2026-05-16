@@ -4,12 +4,9 @@ import * as messageService from "../services/messageService.js";
 import prisma from "../src/lib/prisma.js";
 import { getIo } from "../src/lib/socket.js";
 
-// Centralized broadcast helpers — controllers call these after a successful
-// DB write so a websocket failure can't roll back a persisted message.
-// All errors are logged-and-swallowed: the REST response is the source of
-// truth, real-time delivery is a "nice to have on top." Putting these as
-// local helpers (not in a service) keeps them out of the layer that the
-// socket connection handler itself imports — avoids a circular ref.
+// Broadcast helpers are local (not in a service) to avoid a circular ref
+// with the socket connection handler. Errors are logged-and-swallowed —
+// REST is the source of truth, real-time is best-effort.
 function broadcastNewMessage(conversationId, message) {
   try {
     getIo().to(`conv:${conversationId}`).emit("message:new", message);
@@ -28,16 +25,12 @@ function broadcastRead(conversationId, userId, lastReadAt) {
   }
 }
 
-// When a conversation is created, both participants need their existing
-// connected sockets to join the new room — otherwise message:new emits
-// would never reach them until they reconnect. socketsJoin() iterates
-// every socket in the source room (user:<id>) and adds it to the target.
-//retro active for new conversations when two users are already connected.
+// Pull both participants' already-connected sockets into the new conv room
+// so subsequent broadcasts reach them without requiring a reconnect.
 function joinConversationRoom(conversationId, userIds) {
   try {
     const io = getIo();
     for (const uid of userIds) {
-      //Find every already-connected socket currently in the user:<uid> room (which is this user across all their tabs and devices), and add each of them to the conv:<conversationId> list, so future broadcasts to that conversation will reach them.
       io.in(`user:${uid}`).socketsJoin(`conv:${conversationId}`);
     }
   } catch (err) {
@@ -70,7 +63,7 @@ export const createOrGetConversation = async (req, res, next) => {
     if (!other) {
       return res.status(404).json({ message: "User not found" });
     }
-    // V1: messaging is between PATIENT and PROVIDER only (one of each)
+    // V1: PATIENT ↔ PROVIDER only.
     const allowedPair =
       (req.user.role === "PATIENT" && other.role === "PROVIDER") ||
       (req.user.role === "PROVIDER" && other.role === "PATIENT");
@@ -78,8 +71,7 @@ export const createOrGetConversation = async (req, res, next) => {
       return res.status(403).json({ message: "Conversations are only allowed between a patient and a provider" });
     }
 
-    // Idempotent — if a 1-on-1 thread between these two already exists,
-    // return it instead of creating a duplicate.
+    // Idempotent: return existing 1-on-1 thread if one exists.
     const existing = await conversationService.findDirectConversation(meId, participantId);
     if (existing) {
       const full = await conversationService.getConversationById(existing.id);
@@ -87,11 +79,9 @@ export const createOrGetConversation = async (req, res, next) => {
     }
 
     const created = await conversationService.createDirectConversation(meId, participantId);
-    // Pull existing connected sockets for both users into the new room
-    // so subsequent message:new broadcasts reach them without a refresh.
     joinConversationRoom(created.id, [meId, participantId]);
-    // Audit conversation creation only — message-level audit is intentionally
-    // out of scope for V1 (write amplification with low forensic value).
+    // Audit conversation creation only — message-level audit is out of
+    // scope for V1 (write amplification with low forensic value).
     await logAudit({
       user: req.user,
       action: "CREATE",
@@ -148,9 +138,6 @@ export const sendMessage = async (req, res, next) => {
     });
     await conversationService.touchLastMessageAt(conversationId, message.createdAt);
 
-    // Fan out to every connected socket in this conversation's room. Includes
-    // the sender's other tabs (if any) — frontend dedupes by message id since
-    // the sender's submitting tab already has the message from this response.
     broadcastNewMessage(conversationId, message);
 
     res.status(201).json(message);
@@ -167,9 +154,6 @@ export const markConversationRead = async (req, res, next) => {
     }
     await conversationService.assertParticipant(conversationId, req.user.id);
     const updated = await conversationService.markRead(conversationId, req.user.id);
-    // Tell the room "user X has read up to time Y" — the other side uses
-    // this for read-receipt UI; the reader's own other tabs use it to
-    // clear unread badges without a refetch.
     broadcastRead(conversationId, req.user.id, updated.lastReadAt);
     res.status(200).json(updated);
   } catch (error) {

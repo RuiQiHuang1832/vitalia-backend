@@ -9,29 +9,20 @@ const ALLOWED_ORIGINS = [
   "https://vitalia-frontend-three.vercel.app",
 ];
 
-// Raw cookie parsing — socket.io's handshake exposes raw headers, no
-// cookie-parser middleware available here.
-function readAccessTokenCookie(cookieHeader) {
-  if (!cookieHeader) return null;
-  const match = cookieHeader
-    .split("; ")
-    .find((c) => c.startsWith("accessToken="));
-  if (!match) return null;
-  return match.slice("accessToken=".length);
-}
-
 export function initSocket(httpServer) {
   io = new Server(httpServer, {
     cors: {
       origin: ALLOWED_ORIGINS,
-      credentials: true,
     },
   });
 
+  // Token arrives via socket.io's auth handshake (set client-side from a
+  // same-origin Next.js route that reads the httpOnly cookie). The raw
+  // cookie isn't reachable here because the socket connection is
+  // cross-origin to the frontend.
   io.use((socket, next) => {
     try {
-      const cookieHeader = socket.handshake.headers.cookie;
-      const token = readAccessTokenCookie(cookieHeader);
+      const token = socket.handshake.auth?.token;
       if (!token) return next(new Error("Unauthorized: no access token"));
 
       const payload = jwt.verify(token, process.env.JWT_SECRET);
